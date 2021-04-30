@@ -21,8 +21,11 @@
 # -----------------------------------------------------------------------------
 # Imprimir na tela o menu inicial
 # -----------------------------------------------------------------------------
-	li s10,40 # Critério de soma na tela (considerando uma tela de 240 x 240, LEMBRAR DE AJUSTAR!)
-	print_img(Adventures_of_Lolo_Title) # title é a correta para 320 x 240, Adventures_of_Lolo_Title é para 240 x 240
+	li s1,80 # s1 será equivalente à X
+	li s2,0 # s2 será equivalente à Y
+	li a6,40
+	print_img(Adventures_of_Lolo_Title,a6) # title é a correta para 320 x 240, Adventures_of_Lolo_Title é para 240 x 240
+	li a6,0
 MAIN:
 
 
@@ -35,7 +38,7 @@ INPUT:
 	beqz t1, INPUT # wait time enquanto ready bit == 0
 	li a0, MMIO_add # Data address MMIO
 	lw a0,(a0) # Recupera o valor de MMIO
-	andar(a0,lolinho)
+	andar(a0,lolinho,Adventures_of_Lolo_Title,s1,s2)
 
 	j INPUT
 	Exit()
@@ -46,8 +49,11 @@ INPUT:
 # não tem mais registradores temporários para essa função durante a execução do script... :)
 # Registradores salvos utilizados:
 # s0 -> é definido na hora de printar a imagem em seu valor base; depende de s10
-# s9 -> dimensão máxima da tela
-# s10 -> valor para somar à s0 para chegar na posição desejada para a imagem.
+# s1 -> X
+# s2 -> Y
+# s9 -> dimensão máxima da tela (é definido sempre que é necessário)
+# Com o uso de s1 e s2 para determinar o a posição na tela sempre que algo for andar, fica mais fácil de implementar
+# o desenho de partes menores do mapa.
 
 
 
