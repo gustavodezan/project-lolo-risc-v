@@ -2,19 +2,19 @@
 
 
 .macro print_img(%sprite)
-	la t0,%sprite # carregar o endereÁo de tela em t0
+	la t0,%sprite # carregar o endere√ßo de tela em t0
 	lw t1, 0(t0) # x -> primeira word - inicia em 0xFF000000 e termina em 0xFF00013F
 	lw t2, 4(t0) # y -> segunda word
-	mul t3,t1,t2 # x * y para obter a ·rea -> t3 = ·rea
-	addi t0,t0,8 # 0 È x, 4 È y, portanto em 8 comeÁa a imagem
+	mul t3,t1,t2 # x * y para obter a √°rea -> t3 = √°rea
+	addi t0,t0,8 # 0 √© x, 4 √© y, portanto em 8 come√ßa a imagem
 	li s0, 0xFF000000
-	li s9,320 #dimens„o m·xima da tela
+	li s9,320 #dimens√£o m√°xima da tela
 	sub t2,s9,t1
 	add s0,s0,s10
-	li t6,0 # t6 È um contador secund·rio que vai de atÈ o valor de t1 (x) e retorna para 0
+	li t6,0 # t6 √© um contador secund√°rio que vai de at√© o valor de t1 (x) e retorna para 0
 	li t4, 0 # contador de parada
 IMPRIME:
-	bge t4, t3, RETURN_PRINT
+	bge t4, t3, BREAK_PRINT
 	bge t6,t1, NEW_LINE 
 	lw t5, 0(t0)
 	sw t5, 0(s0)
@@ -25,13 +25,13 @@ IMPRIME:
 	j IMPRIME
 NEW_LINE: 
 	add s0,s0,t2
-	li t6,0 # retornar t6 para 0 para recomeÁar a contagem
+	li t6,0 # retornar t6 para 0 para recome√ßar a contagem
 	j IMPRIME
-RETURN_PRINT:
+BREAK_PRINT:
 .end_macro
 
-.macro andar(%reg,%sprite) # posteriormente passar um %reg para andar() para ele checar o tipo de movimento
-	# Checar se È para a direita
+.macro andar(%reg,%sprite)
+	# Checar se √© para a direita
 	li s3,RIGHT
 	beq %reg,s3,CONTINUE
 	li s3,UP
@@ -41,24 +41,24 @@ RETURN_PRINT:
 	li s3,DOWN
 	beq %reg,s3,CONTINUE
 	
-	#j OUT
+	#j BREAK_WALK # -> descomentar quando estivar implementado a checagem de input
 	
 	CONTINUE:
 	j CLEAR
 	ANDAR_START:
 	addi s10,s10,4
 	print_img(%sprite)
-	j RETURN_WALK
+	j BREAK_WALK
 CLEAR:
-	la t0,%sprite # carregar o endereÁo de tela em t0
+	la t0,%sprite # carregar o endere√ßo de tela em t0
 	lw t1, 0(t0) # x -> primeira word - inicia em 0xFF000000 e termina em 0xFF00013F
 	lw t2, 4(t0) # y -> segunda word
-	mul t3,t1,t2 # x * y para obter a ·rea -> t3 = ·rea
+	mul t3,t1,t2 # x * y para obter a √°rea -> t3 = √°rea
 	li s0, 0xFF000000
 	add s0,s0,s10
-	li s9,320 #dimens„o m·xima da tela
+	li s9,320 #dimens√£o m√°xima da tela
 	sub t2,s9,t1
-	li t6,0 # t6 È um contador secund·rio que vai de atÈ o valor de t1 (x) e retorna para 0
+	li t6,0 # t6 √© um contador secund√°rio que vai de at√© o valor de t1 (x) e retorna para 0
 	li t4, 0 # contador de parada
 CLEAR_LOOP:
 	bge t4, t3, ANDAR_START
@@ -71,7 +71,7 @@ CLEAR_LOOP:
 	j CLEAR_LOOP
 CLEAR_LINE: 
 	add s0,s0,t2
-	li t6,0 # retornar t6 para 0 para recomeÁar a contagem
+	li t6,0 # retornar t6 para 0 para recome√ßar a contagem
 	j CLEAR_LOOP
-RETURN_WALK:
+BREAK_WALK:
 .end_macro
