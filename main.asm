@@ -14,10 +14,6 @@
 # -----------
 # Constantes
 # -----------
-.eqv RIGHT 68
-.eqv UP 87
-.eqv LEFT 65
-.eqv DOWN 83
 
 # Obs.: talvez seja necessário diminuir a quantidade de includes? Se não, passar as .eqv para outra pasta
 
