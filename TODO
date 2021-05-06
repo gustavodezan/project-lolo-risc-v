@@ -1,0 +1,24 @@
+TODO:
+Player:
+[~] - Movement
+-> ainda é necessário aperfeiçoar o código de print + movimento
+[-] - Power
+[-] - HP
+[-] - State Machine
+[-] - Sprite Animation
+
+Enemies:
+[-] - I.A.
+
+Game:
+[-] - Mnus
+[-] - Puse
+[-] - GUI
+[-] - Maps
+[-] - Elementos interativos do cenário
+[-] - Map transitions
+[~] - Keyboard Input -> implementação gradual conforme forem adicionadas novas funcionalidades
+
+MIDI:
+[V] - Musica -> feita, mas ainda não implementada
+[-] - SFX
