@@ -52,7 +52,7 @@ GAME_LOOP:
 	li a0, MMIO_add # Data address MMIO
 	lw a0,(a0) # Recupera o valor de MMIO
 	#check_state(a0,STATE,t2)
-	andar(a0,lolo_walk,Adventures_of_Lolo_Title,s1,s2)
+	andar(a0,lolo_4_dir,lolo_walk,Adventures_of_Lolo_Title,s1,s2)
 	
 	j GAME_LOOP
 	Exit()
