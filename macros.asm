@@ -2,6 +2,15 @@
 # 		   Macros
 # -----------------------------------------
 # macro trecho de código (~chamada de função)
+
+# multiplicador e divisor
+# multiplica %reg por %imm e guarda em %result
+# ou faz a mesma operação para divisão
+.macro mult_div(%op,%result,%reg,%imm)
+	li %result,%imm
+	%op %result,%reg,%result
+.end_macro
+
 # +=
 .macro pp(%reg,%int)
 	addi %reg,%reg,%int
@@ -68,20 +77,23 @@ texto: .string %str
 	sh %r1,%DIR,%temp
 .end_macro
 
-# Checar se o player estava andando ou não
-.macro check_state(%reg,%state,%temp)
-	check_input(%reg)
-	bnez t2,CHANGE_STATE
-	j RESET_STATE
-CHANGE_STATE:
-	la %reg,%state
-	lh %reg,0(%reg)
-	addi %reg,%reg,1
-	sh %reg,%state,%temp
-	j END_CHECK_STATE
-RESET_STATE:
-	sh zero,%state,%temp
-END_CHECK_STATE:
+# r1 passa o número de pixels de todos os frames da imagem
+# r2 passa o número de pixels de cada frame da imagem
+# frame contém a label que guarda o último frame da imagem
+# em ret fica o resultado de quantos pixels devem ser pulados para o novo ponto de início da imagem
+.macro image_cicle(%sprite,%r1,%r2,%frame,%ret,%temp1,%temp3)
+	la %ret,%frame
+	lb %ret,0(%ret)
+	addi %temp1,%ret,1
+	mul %ret,%ret,%r2
+	sb %temp1,%frame,%temp3
+	# o valor dos frames deve ir de 0 até o valor de t1
+	bge %ret,%r1,SKIP_FRAME
+	j END_FRAME
+SKIP_FRAME:
+	sb zero,%frame,%temp1
+	li %ret,0
+END_FRAME:
 .end_macro
 
 # Os medidores de magnitude serão t0 e t1
@@ -95,6 +107,11 @@ END_CHECK_STATE:
 	li t0,0
 	li t1,0
 	li t2,0
+PAUSE_GAME:
+	li s3,ESC
+	bne %reg,s3,RESTART
+	j GLOBAL_PAUSE
+RESTART:
 	li s3,R
 	bne %reg,s3,W_RIGHT
 	j LOAD_GAME_START
@@ -135,4 +152,8 @@ END_CHECK_INPUT:
 	ecall
 .end_macro
 
-
+# Ah, a parada da animação q eu falei, deu certo ss
+# usei +- o que falei ontem msm, tem um vetor que armazena o último frame do lolo
+# aí eu multiplico o valor do frame pelo numero de pixels de cada frame do lolo (16)
+# e somo isso no ponto onde é para começar a printar os pixels do lolo
+# se for maior do que o total de pixels de todos os frames de uma mesma direção ele volta para 0
