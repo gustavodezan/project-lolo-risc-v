@@ -27,8 +27,8 @@
 	add s0,s0,%grid_reg
 	sub s8,t1,t2 # Encontrar valor de line_break para os pixels
 	# t1 passa o valor da dimensão x total da imagem, não de um único frame
-	li t6,4
-	div t1,t1,t6 # transformar t1 no valor de um frame e não do sprite inteiro
+	mult_div(div,t6,t1,4)
+	mv t1,t6 # transformar t1 no valor de um frame e não do sprite inteiro -> totalFrames
 	# Achar o valor inicial de t0.
 	# -> primeiro teste -> t0 inicia na posição 0
 	# Carregar em t4 o valor da direção
@@ -46,14 +46,11 @@
 	# de uma direção
 	# em t1 tenho o limite dos intervalos de frames
 	# registradores sobrando: t4,t5,t6
-	# Carregar STATE
-	#la t4,%state
-	#lh t4,0(t4)
-	#li t5,4
-	#bgt t4,t5,RSTATE
-	#mul t5,t4,t2
-	#add t0,t0,t5
-
+	#%sprite,%r1,%r2,%frame,%ret,%temp1,%temp3
+	
+	image_cicle(%sprite,t1,t2,LOLO_FRAME,t4,t5,t6)
+	add t0,t0,t4
+	
 	# Encontrar o nº de pixels a serem pulados
 	li s9,320 # dimensão máxima da tela
 	sub t1,s9,t2 # t2 armazena da dimensão máxima - o valor x do sprite
@@ -114,7 +111,7 @@ BREAK_PRINT:
 # %old_sprite -> recebe a imagem do back_ground que será reimpressa
 # %x e %y serão passados para que o vetor deles seja gerado a partir deles.
 # o movimento é computado de 4 em 4 pixels
-.macro andar(%reg,%sprite,%old_sprite,%x,%y)
+.macro andar(%reg,%sprite,%sprite_walk,%old_sprite,%x,%y)
 	# Gerar vetor X por Y
 	# -> o vetor da pos inicial deve ser gerado antes de chamar o clear pela primeira vez
 	li s9,320
@@ -139,7 +136,7 @@ ANDAR_START:
 	update_pos(s1,s2,POS_X,POS_Y,t2)
 	mul s10,%y,s9
 	add s10,s10,%x
-	animate_sprite(%sprite,s10,STATE,DIR,%x,%y)
+	animate_sprite(%sprite_walk,s10,STATE,DIR,%x,%y)
 	#print_img(%sprite,s10)
 	j BREAK_WALK
 	
@@ -147,7 +144,10 @@ ANDAR_START:
 PRINT_SCAPE:
 	li t2,0
 	li t3,0
-	j ANDAR_START
+	li s9,320
+	mul s10,%y,s9
+	add s10,s10,%x
+	animate_sprite(%sprite,s10,STATE,DIR,%x,%y)
 
 BREAK_WALK:
 .end_macro
