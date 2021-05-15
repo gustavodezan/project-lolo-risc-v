@@ -11,8 +11,8 @@ Enemies:
 [-] - I.A.
 
 Game:
-[-] - Mnus
-[-] - Puse
+[-] - Menus
+[-] - Pause
 [-] - GUI
 [-] - Maps
 [-] - Elementos interativos do cenário
