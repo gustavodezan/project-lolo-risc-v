@@ -16,7 +16,7 @@
 # %state é para saber se o "objeto" está andando ou parado
 # %dir é para saber a direção para a qual o sprite está indo (passar 
 # ---> Provável que eu tenha que modificar o script de clear
-.macro animate_sprite(%sprite,%grid_reg,%state,%dir,%x,%y)
+.macro animate_sprite(%sprite,%grid_reg,%frame,%dir,%x,%y)
 	la t0,%sprite # carregar o endereço do sprite em t0 apenas para passar para t1 e t2
 	lw t1, 0(t0) # x -> primeira word - inicia em 0xFF000000 e termina em 0xFF00013F
 	lw t2, 4(t0) # y -> segunda word
@@ -77,30 +77,30 @@ BREAK_ANIMATION:
 .end_macro
 
 # Printa imagens estáticas na tela
-.macro print_img(%sprite,%grid_reg)
+.macro print_img(%sprite,%grid_reg,%f_reg,%f_adress)
 	la t0,%sprite # carregar o endereço de tela em t0
 	lw t1, 0(t0) # x -> primeira word - inicia em 0xFF000000 e termina em 0xFF00013F
 	lw t2, 4(t0) # y -> segunda word
 	mul t3,t1,t2 # x * y para obter a área -> t3 = área
 	addi t0,t0,8 # 0 é x, 4 é y, portanto em 8 começa a imagem
-	li s0, 0xFF000000
+	li %f_reg, %f_adress
 	li s9,320 #dimensão máxima da tela
 	sub t2,s9,t1
-	add s0,s0,%grid_reg
+	add %f_reg,%f_reg,%grid_reg
 	li t6,0 # contador quebra de linha
 	li t4, 0 # contador de parada
 IMPRIME:
 	bge t4, t3, BREAK_PRINT
 	bge t6,t1, NEW_LINE 
 	lw t5, 0(t0)
-	sw t5, 0(s0)
+	sw t5, 0(%f_reg)
 	pp(t0,4)
-	pp(s0,4)
+	pp(%f_reg,4)
 	pp(t4,4)
 	pp(t6,4)
 	j IMPRIME
 NEW_LINE: 
-	add s0,s0,t2
+	add %f_reg,%f_reg,t2
 	li t6,0 # retornar t6 para 0 para recomeçar a contagem
 	j IMPRIME
 BREAK_PRINT:
@@ -130,13 +130,18 @@ COMPUT_MOVEMENT:
 	mul t3,t3,t1
 	
 ANDAR_START:
-	li s9,320
 	# Incrementar X e Y com os valores de t2 e t3
-	increment_pos_reg(%x,%y,t2,t3)
+	# Chamar check_collision(t2,t3)
+	
+	check_collision(%x,%y,t2,t3)
+	
+	li s9,320
+	
+	
 	update_pos(s1,s2,POS_X,POS_Y,t2)
 	mul s10,%y,s9
 	add s10,s10,%x
-	animate_sprite(%sprite_walk,s10,STATE,DIR,%x,%y)
+	animate_sprite(%sprite_walk,s10,LOLO_FRAME,DIR,%x,%y)
 	#print_img(%sprite,s10)
 	j BREAK_WALK
 	
@@ -152,6 +157,87 @@ PRINT_SCAPE:
 BREAK_WALK:
 .end_macro
 
+# Player collision deve vir sempre que for chamada a função de movimentar o jogador
+# Desse modo, será checado se há colisão no próximo espaço que o Lolo irá ocupar
+# se houver, ele não movimenta, se estiver livre, ele movimenta normalmente
+.macro check_collision(%x,%y,%x_mv,%y_mv)
+	# Checar se está em uma das bordas do mapa
+	# como todas as unidades estão sujeitas ao mapa, serve para todas
+	mv t5,%x_mv
+	mv t6,%y_mv
+	add %x_mv,%x,%x_mv
+	add %y_mv,%y,%y_mv
+	li t0,52 # pixel x onde começa o mapa, após a parede
+	li t1,28 # pixel y onde começa o mapa, após a parede
+	ble %x_mv,t0,END_CHECK_COLLISION # checar colisão na esquerda
+	ble %y_mv,t1,END_CHECK_COLLISION # checar colisão encima
+	li t0,220
+	li t1,196
+	bge %x_mv,t0,END_CHECK_COLLISION # checar colisão na direita
+	bge %y_mv,t1,END_CHECK_COLLISION #checar colisão inferior
+	
+	# Passo 2:
+	# checar se há algum objeto com colisão perto
+	li a7,1
+	la s8,COL1_NUM
+	lw s11,0(s8)
+	la s8,MAP1_COL
+	li t4,0
+	
+	bltz t5,START_CHECK_COL_NEG
+	bltz t6,START_CHECK_COL_NEG
+	bgt t5,zero,START_CHECK_COL_POS
+	bgt t6,zero,START_CHECK_COL_POS
+
+START_CHECK_COL_POS:
+	mv t5,%x_mv
+	mv t6,%y_mv
+	li t0,44
+	sub t5,t5,t0
+	srli t5,t5,4
+	li t0,20
+	sub t6,t6,t0
+	srli t6,t6,4
+LOOP_CHECK_COL_POS:
+	beq t4,s11,ESCAPE_CHECK_COL
+	lb t0,0(s8)
+	bne t5,t0,SKIP_DIFERENCE_POS
+	lb t0,4(s8)
+	beq t6,t0,END_CHECK_COLLISION
+SKIP_DIFERENCE_POS:
+	addi s8,s8,8
+	addi t4,t4,2
+	j LOOP_CHECK_COL_POS
+
+START_CHECK_COL_NEG:
+	mv t5,%x_mv
+	mv t6,%y_mv
+	# X 
+	li t0,56
+	sub t5,t5,t0
+	srli t5,t5,4
+	# Y
+	li t0,32
+	sub t6,t6,t0
+	srli t6,t6,4
+
+LOOP_CHECK_COL_NEG:
+	beq t4,s11,ESCAPE_CHECK_COL
+	lb t0,0(s8)
+	bne t5,t0,SKIP_DIFERENCE_NEG
+	lb t0,4(s8)
+	beq t6,t0,END_CHECK_COLLISION
+SKIP_DIFERENCE_NEG:
+	addi s8,s8,8
+	addi t4,t4,2
+	j LOOP_CHECK_COL_NEG
+
+ESCAPE_CHECK_COL:
+	increment_pos_reg(%x,%y,%x_mv,%y_mv)
+
+END_CHECK_COLLISION:
+.end_macro
+
 .macro clear_sprite(%sprite,%old_sprite,%x,%y)
 	CLEAR:
 	la t0,%sprite # carregar o endereço do sprite em t0 apenas para passar para t1 e t2
@@ -165,7 +251,8 @@ BREAK_WALK:
 	li s9,320 # dimensão máxima da tela
 	sub t2,s9,t1
 	# Como X e Y não estão em vetor, posso facilmente achar a posição relativa do background em 240x240
-	li s9,240
+	la s9,%old_sprite
+	lw s9,0(s9) # armazenar em s9 o valor y do mapa
 	mul s10,%y,s9
 	li s9,40
 	sub s9,%x,s9
