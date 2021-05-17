@@ -77,6 +77,7 @@ texto: .string %str
 	sh %r1,%DIR,%temp
 .end_macro
 
+# ANIMAÇÂO:
 # r1 passa o número de pixels de todos os frames da imagem
 # r2 passa o número de pixels de cada frame da imagem
 # frame contém a label que guarda o último frame da imagem
@@ -94,6 +95,34 @@ SKIP_FRAME:
 	sb zero,%frame,%temp1
 	li %ret,0
 END_FRAME:
+.end_macro
+
+# %x_mv e %y_mv são os registradores que guardam a posição do lolo movimentado
+# %imm_x e %imm_y são os imediatos que indicam o quanto os pixels do sprite devem ser deslocados
+# %treg é o registrador de retorno
+
+.macro get_point(%x_mv,%y_mv,%imm_x,%imm_y,%treg)
+	li t0,%imm_x
+	sub t5,%x_mv,t0
+	srli t5,t5,4
+	li t0,%imm_y
+	sub %treg,%y_mv,t0
+	srli %treg,%treg,4
+	li t0,11
+	mul %treg,%treg,t0
+	add %treg,%treg,t5
+END_CHECK_HITBOX:
+.end_macro
+
+# %sprite é o registrador que carrega a posição atual do sprite
+# %imm é o imediato do collision type do lolo
+# %matrix é a matriz do mapa
+# t0 é o registrador de retorno
+.macro check_col_type(%sprite,%imm,%matrix)
+	slli t0,%sprite,2
+	add t0,%matrix,t0
+	lb t0,0(t0)
+	li t1,%imm
 .end_macro
 
 # Os medidores de magnitude serão t0 e t1
