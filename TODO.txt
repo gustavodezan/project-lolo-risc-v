@@ -5,17 +5,25 @@ Player:
 [-] - Power
 [-] - HP
 [-] - State Machine
-[-] - Sprite Animation
+[V] - Sprite Animation -> animação dos sprites já implementada.
+-> ainda é preciso criar sub-rotinas para que seja mais facilmente aplicável aos demais objetos além do lolo
 
 Enemies:
+[-] - Movimento
+[-] - Colisão
 [-] - I.A.
 
 Game:
 [-] - Menus
-[-] - Pause
+[~] - Pause -> falta criar um feedback gráfico para o pause e redesenhar o lolo no momento em que o jogo despausar
 [-] - GUI
+-> Checar dentro do game loop se a HUD precisa ser atualizada
+-> Criar uma sub-rotina para cuidar da HUD
 [-] - Maps
+-> Organizos dentro de um arquivo separado
+-> Cada elemento do mapa é representado por um valor na matriz
 [-] - Elementos interativos do cenário
+-> Estão dentro da matriz, de acordo com seu valor vão chamar sub-rotinas
 [-] - Map transitions
 [~] - Keyboard Input -> implementação gradual conforme forem adicionadas novas funcionalidades
 
