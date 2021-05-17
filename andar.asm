@@ -16,7 +16,7 @@
 # %state é para saber se o "objeto" está andando ou parado
 # %dir é para saber a direção para a qual o sprite está indo (passar 
 # ---> Provável que eu tenha que modificar o script de clear
-.macro animate_sprite(%sprite,%grid_reg,%frame,%dir,%x,%y)
+.macro animate_sprite(%sprite,%grid_reg,%frame,%dir)
 	la t0,%sprite # carregar o endereço do sprite em t0 apenas para passar para t1 e t2
 	lw t1, 0(t0) # x -> primeira word - inicia em 0xFF000000 e termina em 0xFF00013F
 	lw t2, 4(t0) # y -> segunda word
@@ -32,7 +32,7 @@
 	# Achar o valor inicial de t0.
 	# -> primeiro teste -> t0 inicia na posição 0
 	# Carregar em t4 o valor da direção
-	# Após isso, multiplicar em por t1, que será o intervalo de pixels de cada direção
+	# Após isso, multiplicar por t1, que será o intervalo de pixels de cada direção
 	# Ao somar o valor gerado em t4 chega-se no novo valor inicial da imagem.
 	la t4,%dir
 	lh t4,0(t4)
@@ -48,7 +48,7 @@
 	# registradores sobrando: t4,t5,t6
 	#%sprite,%r1,%r2,%frame,%ret,%temp1,%temp3
 	
-	image_cicle(%sprite,t1,t2,LOLO_FRAME,t4,t5,t6)
+	image_cicle(%sprite,t1,t2,%frame,t4,t5,t6)
 	add t0,t0,t4
 	
 	# Encontrar o nº de pixels a serem pulados
@@ -111,7 +111,7 @@ BREAK_PRINT:
 # %old_sprite -> recebe a imagem do back_ground que será reimpressa
 # %x e %y serão passados para que o vetor deles seja gerado a partir deles.
 # o movimento é computado de 4 em 4 pixels
-.macro andar(%reg,%sprite,%sprite_walk,%old_sprite,%x,%y)
+.macro move(%reg,%sprite,%sprite_walk,%old_sprite,%x,%y)
 	# Gerar vetor X por Y
 	# -> o vetor da pos inicial deve ser gerado antes de chamar o clear pela primeira vez
 	li s9,320
@@ -141,7 +141,7 @@ ANDAR_START:
 	update_pos(s1,s2,POS_X,POS_Y,t2)
 	mul s10,%y,s9
 	add s10,s10,%x
-	animate_sprite(%sprite_walk,s10,LOLO_FRAME,DIR,%x,%y)
+	animate_sprite(%sprite_walk,s10,LOLO_FRAME,DIR)
 	#print_img(%sprite,s10)
 	j BREAK_WALK
 	
@@ -152,7 +152,7 @@ PRINT_SCAPE:
 	li s9,320
 	mul s10,%y,s9
 	add s10,s10,%x
-	animate_sprite(%sprite,s10,STATE,DIR,%x,%y)
+	animate_sprite(%sprite,s10,FALSE,DIR)
 
 BREAK_WALK:
 .end_macro
@@ -179,58 +179,37 @@ BREAK_WALK:
 	# Passo 2:
 	# checar se há algum objeto com colisão perto
 	li a7,1
-	la s8,COL1_NUM
-	lw s11,0(s8)
-	la s8,MAP1_COL
+	la s8,MAP0
 	li t4,0
+
+# SUPERIOR_ESQUERDO: X = 56 Y = 32
+# SUPERIOR_DIREITO: X = 44 Y = 32
+# INFERIOR_ESQUERDO: X = 56 Y =¨20
+# INFERIOS_DIREITO: X = 44 Y = 20
 	
-	bltz t5,START_CHECK_COL_NEG
-	bltz t6,START_CHECK_COL_NEG
-	bgt t5,zero,START_CHECK_COL_POS
-	bgt t6,zero,START_CHECK_COL_POS
-
-START_CHECK_COL_POS:
-	mv t5,%x_mv
-	mv t6,%y_mv
-	li t0,44
-	sub t5,t5,t0
-	srli t5,t5,4
-	li t0,20
-	sub t6,t6,t0
-	srli t6,t6,4
-LOOP_CHECK_COL_POS:
-	beq t4,s11,ESCAPE_CHECK_COL
-	lb t0,0(s8)
-	bne t5,t0,SKIP_DIFERENCE_POS
-	lb t0,4(s8)
-	beq t6,t0,END_CHECK_COLLISION
-SKIP_DIFERENCE_POS:
-	addi s8,s8,8
-	addi t4,t4,2
-	j LOOP_CHECK_COL_POS
-
-START_CHECK_COL_NEG:
-	mv t5,%x_mv
-	mv t6,%y_mv
-	# X 
-	li t0,56
-	sub t5,t5,t0
-	srli t5,t5,4
-	# Y
-	li t0,32
-	sub t6,t6,t0
-	srli t6,t6,4
-
-LOOP_CHECK_COL_NEG:
-	beq t4,s11,ESCAPE_CHECK_COL
-	lb t0,0(s8)
-	bne t5,t0,SKIP_DIFERENCE_NEG
-	lb t0,4(s8)
-	beq t6,t0,END_CHECK_COLLISION
-SKIP_DIFERENCE_NEG:
-	addi s8,s8,8
-	addi t4,t4,2
-	j LOOP_CHECK_COL_NEG
+	get_point(%x_mv,%y_mv,56,32,t6)
+	check_col_type(t6,1,s8)
+	beq t1,t0,END_CHECK_COLLISION
+	li t1,8
+	beq t1,t0,END_CHECK_COLLISION
+	
+	get_point(%x_mv,%y_mv,44,32,t6)
+	check_col_type(t6,1,s8)
+	beq t1,t0,END_CHECK_COLLISION
+	li t1,8
+	beq t1,t0,END_CHECK_COLLISION
+	
+	get_point(%x_mv,%y_mv,56,20,t6)
+	check_col_type(t6,1,s8)
+	beq t1,t0,END_CHECK_COLLISION
+	li t1,8
+	beq t1,t0,END_CHECK_COLLISION
+	
+	get_point(%x_mv,%y_mv,44,20,t6)
+	check_col_type(t6,1,s8)
+	beq t1,t0,END_CHECK_COLLISION
+	li t1,8
+	beq t1,t0,END_CHECK_COLLISION
 
 ESCAPE_CHECK_COL:
 	increment_pos_reg(%x,%y,%x_mv,%y_mv)
