@@ -28,6 +28,21 @@ MAP0:	1,1,1,1,1,1,0,1,1,0,1,
 # Posição dos corações
 # 1: X: 120 Y: 48
 
+# Posição dos corações
+# 1: X: 120 Y: 48
+
+MAP: 0
+CHEST: 0
+
+# ENEMY_0:
+ENEMY0_XY: 152,112
+ENEMY0_DIR: 0
+ENEMY0_OLDDIR: 0
+ENEMY0_LIVE: 1
+# posição de cada inimigo da matriz em ordem crescente
+MAP0_MATRIXPOS_PER_ENEMY: 61
+MAP0_ENEMY_COUNT: 1
+
 # ----------------
 # MAPA 2:
 # ----------------
