@@ -3,6 +3,10 @@
 # -----------------------------------------
 # macro trecho de código (~chamada de função)
 
+# -----------------------------------------
+# 	Macros de operações:
+# -----------------------------------------
+
 # multiplicador e divisor
 # multiplica %reg por %imm e guarda em %result
 # ou faz a mesma operação para divisão
@@ -48,6 +52,20 @@ texto: .string %str
 	ecall
 .end_macro
 
+.macro read_char()
+	li a7, 12
+	ecall
+.end_macro
+
+.macro Exit()
+	li a7,10 # Exit
+	ecall
+.end_macro
+
+# ---------------------------------------
+# 	"Funções" do Jogo
+# ---------------------------------------
+
 # -------------------
 # Funções de Posição
 # -------------------
@@ -65,13 +83,19 @@ texto: .string %str
 	sh %y,%label_y,%temp
 .end_macro
 
+# passa o valor de um registrador para o registrador de movimento
 .macro increment_pos_reg(%x,%y,%r1,%r2)
 	mv %x,%r1
 	mv %y,%r2
 .end_macro
 
-# %r1 é o registrador do último movimento em x
-# %r2 é o registrador do último movimento em y
+# incrementa o valor da posição pelo valor de outros 2 registradores
+.macro increment_pos_numb(%x,%y,%r1,%r2)
+	add %x,%x,%r1
+	add %y,%y,%r2
+.end_macro
+
+# %r1 é o registrador do último movimento no eixo
 # %DIR é a label que guarda a informação da última direção
 .macro update_dir(%r1,%DIR,%temp)
 	sh %r1,%DIR,%temp
@@ -125,6 +149,11 @@ END_CHECK_HITBOX:
 	li t1,%imm
 .end_macro
 
+.macro get_col_pos(%pos,%matrix)
+	slli t0,%pos,2
+	add t0,%matrix,t0
+.end_macro
+
 # Os medidores de magnitude serão t0 e t1
 # t0 é a magnitude de X
 # t1 é a magnitude de Y
@@ -142,8 +171,12 @@ PAUSE_GAME:
 	j GLOBAL_PAUSE
 RESTART:
 	li s3,R
-	bne %reg,s3,W_RIGHT
+	bne %reg,s3,CAST_POWER
 	j LOAD_GAME_START
+CAST_POWER:
+	li s3,SPACE
+	bne %reg,s3,W_RIGHT
+	call POWER_ROUTINE
 W_RIGHT:
 	li s3,RIGHT
 	bne %reg,s3,W_UP
@@ -171,21 +204,108 @@ W_DOWN:
 END_CHECK_INPUT:
 .end_macro
 
-.macro read_char()
-	li a7, 12
-	ecall
+# -------------------------
+# Enemy Functions
+# -------------------------
+
+# Enemy finder
+# checar o matrix enemy count para saber o número de vezes que o loop deve rodar
+# o loop roda recebendo várias labels de inimigos para encontrar o que atende à posição
+.macro enemy_finder(%enemypos,%enemycount,%colisionposx,%collisionposy)
+	la t4,%enemycount
+	lw t4,0(t4) # dfine em t4 o valor máximo do contador
+	
+	la t1,%collisionposx
+	lw t1,0(t1)
+	la t2,%collisionposy
+	lw t2,0(t2)
+	# com as posições da colisão, encontrar o relativo dela na matriz
+	
+	
+	
+	li t3 0 # define o contador em 0 
+LOOKING_FOR_ENEMY:
+	
+	pp(t4,4)
+
 .end_macro
 
-.macro Exit()
-	li a7,10 # Exit
-	ecall
+# %r1 registrador de x
+# %r2 registrador de y
+.macro load_other_pos(%r1,%r2,%label)
+	la t1,%label
+	lh %r1,0(t1)
+	lh %r2,4(t1)
 .end_macro
 
-# Ah, a parada da animação q eu falei, deu certo ss
-# usei +- o que falei ontem msm, tem um vetor que armazena o último frame do lolo
-# aí eu multiplico o valor do frame pelo numero de pixels de cada frame do lolo (16)
-# e somo isso no ponto onde é para começar a printar os pixels do lolo
-# se for maior do que o total de pixels de todos os frames de uma mesma direção ele volta para 0
+.macro load_other_pos(%r1,%r2,%labelx,%labely)
+	la t5,%labelx
+	la t6,%labely
+	lh %r1,0(t5)
+	lh %r2,0(t6)
+.end_macro
+
+.macro find_grid_pos(%r1,%r2)
+	li t0,320
+	mul %r2,%r2,t0
+	add %r2,%r2,%r1
+.end_macro
+
+# Lagarta
+# recebe x da lagarta e x do lolo
+# encontrar x da lagar + e - 16, para as posições 2 e 1, e 0 e 3 para x menores e maiores
+.macro lagarta_dir(%lolo,%x,%label,%old_label)
+	la t0,%label
+	lb t0,0(t0)
+	sb t0,%old_label,t1
+	li t0,16
+	bgt %lolo,%x,X_POS_CHECK
+	sub t2,%x,%lolo
+	ble t2,t0,HALF_DIR2
+	li t1,3
+	sb t1,%label,t2
+	j END_UPDATE_OTHER_DIR
+HALF_DIR2:
+	li t1,2
+	sb t1,%label,t2
+	j END_UPDATE_OTHER_DIR
+X_POS_CHECK:
+	sub t2,%lolo,%x
+	ble t2,t0,HALF_DIR1
+	li t1,0
+	sb t1,%label,t2
+	j END_UPDATE_OTHER_DIR
+HALF_DIR1:
+	li t1,1
+	sb t1,%label,t2
+
+END_UPDATE_OTHER_DIR:
+.end_macro
+
+# encontra a direção para a qual algum objeto estava se deslocando
+# adiciona um valor de movimento (%imm) nessa direção
+# %xdir e %ydir são os registradores que vão receber o valor do deslocamento de posição
+.macro find_dir(%label,%xdir,%ydir,%imm)
+	li %xdir 0
+	li %ydir 0
+	la t0,POWER_DIR
+	lb t0,0(t0)
+	bnez t0,CHECK_IF_1
+	li %xdir,%imm
+	j START_DESTRUCTION
+CHECK_IF_1:
+	li t3,1
+	beq t3,t0,CHECK_IF_2
+	li %ydir,-%imm
+	j START_DESTRUCTION
+CHECK_IF_2:
+	li t3,2
+	beq t3,t0,IS_3
+	li %xdir,-%imm
+	j START_DESTRUCTION
+IS_3:
+	li %ydir,%imm
+.end_macro
 
 # -------------------------
 # Music
