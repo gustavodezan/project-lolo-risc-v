@@ -19,7 +19,7 @@ DIR:    .byte 3
 FALSE: .byte 0
 HUD_LOLO: .half 3
 # POWER
-POWER_CHARGE: .byte 2
+POWER_CHARGE: .byte 0
 POWER_DIR: .byte 0
 POWER_POSX: .half 0
 POWER_POSY: .half 0
@@ -120,7 +120,26 @@ SKIP_ENEMY_PRINT:
 	li a6,0
 	li a5,0
 	ret
+
+# Sempre que o Lolo colidir com um coração ele iniciará essa rotina
+# passos:
+# acrescentar 2 de power quando convir
+# apagar o coração	
 HEARTS_ROUTINE:
+	la t1,COLLECTABLE
+	lw s6,0(t1)
+	lw s7,4(t1)
+	clear_sprite(map_start,s6,s7) # apagar o sprite
+	change_matrix_value(COLLECTABLE,CURRENT_MAP,0)
+	
+	# Atualizar o valor de power
+	la t0,COLLECT_POWER_INCREASE
+	lb t0,0(t0)
+	la t1,POWER_CHARGE
+	lb t2,0(t1)
+	add t2,t2,t0
+	sb t2,(t1)
+	ret
 
 # Rotina do Poder
 POWER_ROUTINE:
@@ -142,6 +161,7 @@ POWER_ROUTINE:
 	lb t0,0(t0)
 	sb t0,POWER_DIR,t1
 CREATE_POWER:
+	sound_effect(69,400,127,60) # tocar efeito sonoro do poder
 	li t1 1
 	sb t1,POWER_EXIST,t2 # atualizar POWER_EXIST para true
 	load_other_pos(s5,s6,POS_X,POS_Y) # Carregar a posição do lolo
@@ -196,12 +216,10 @@ START_DESTRUCTION:
 	load_pos(POWER_POSX,POWER_POSY,s5,s6)
 	increment_pos_numb(s5,s6,s7,s11)
 	clear_sprite(map_start,s5,s6)
-	la s8,MAP0
-	find_grid_pos(s5,s6)
-	check_col_type(s6,2,s8)
-	li t0,2
-	beq s9,t0,KILL_EVERYTHING
-
+	la s8,CURRENT_MAP
+	get_point(s5,s6,52,32,t6)
+	check_col_type(t6,2,s8)
+	beq t0,t1,KILL_EVERYTHING
 SKIP_OBJECT_DESTRUCTION:
 	ret
 
@@ -210,6 +228,7 @@ SKIP_OBJECT_DESTRUCTION:
 KILL_EVERYTHING:
 	li t1,0
 	sw t1,ENEMY0_LIVE,t0
+	change_matrix_value(ENEMY0_XY,CURRENT_MAP,0)
 	ret
 
 GLOBAL_PAUSE:
