@@ -129,7 +129,7 @@ COMPUT_MOVEMENT:
 	
 ANDAR_START:
 	# Incrementar X e Y com os valores de t2 e t3
-	li s5,0
+	li s9,0
 	check_collision(%x,%y,t2,t3,s9)
 	
 	li s9,320
@@ -176,7 +176,7 @@ BREAK_WALK:
 	# Passo 2:
 	# checar se há algum objeto com colisão perto
 	li a7,1
-	la s8,MAP0
+	la s8,CURRENT_MAP
 	li t4,0
 
 # SUPERIOR_ESQUERDO: X = 56 Y = 32
@@ -189,6 +189,8 @@ BREAK_WALK:
 	beq t1,t0,END_CHECK_COLLISION
 	li t1,2
 	beq t1,t0,CHECK_COLLISION_TYPE
+	li t1,7
+	beq t1,t0,CHECK_COLLISION_TYPE
 	li t1,8
 	beq t1,t0,END_CHECK_COLLISION
 	
@@ -196,6 +198,8 @@ BREAK_WALK:
 	check_col_type(t6,1,s8)
 	beq t1,t0,END_CHECK_COLLISION
 	li t1,2
+	beq t1,t0,CHECK_COLLISION_TYPE
+	li t1,7
 	beq t1,t0,CHECK_COLLISION_TYPE
 	li t1,8
 	beq t1,t0,END_CHECK_COLLISION
@@ -205,6 +209,8 @@ BREAK_WALK:
 	beq t1,t0,END_CHECK_COLLISION
 	li t1,2
 	beq t1,t0,CHECK_COLLISION_TYPE
+	li t1,7
+	beq t1,t0,CHECK_COLLISION_TYPE
 	li t1,8
 	beq t1,t0,END_CHECK_COLLISION
 	
@@ -212,6 +218,8 @@ BREAK_WALK:
 	check_col_type(t6,1,s8)
 	beq t1,t0,END_CHECK_COLLISION
 	li t1,2
+	beq t1,t0,CHECK_COLLISION_TYPE
+	li t1,7
 	beq t1,t0,CHECK_COLLISION_TYPE
 	li t1,8
 	beq t1,t0,END_CHECK_COLLISION
@@ -221,6 +229,11 @@ ESCAPE_CHECK_COL:
 	li %col_type,0
 	j END_CHECK_COLLISION
 CHECK_COLLISION_TYPE:
+	bnez %col_type,NEXT_CHECK_COL0
+	li t0,7
+	bne t0,t1,NEXT_CHECK_COL0
+	call HEARTS_ROUTINE
+NEXT_CHECK_COL0:
 	beqz %col_type,END_CHECK_COLLISION
 	mv %col_type,t1 # se a colisão for do poder, informar que a colisão ocorreu
 
