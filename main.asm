@@ -1,4 +1,3 @@
-.data
 .include "./scripts/macros.asm"
 .include "./scripts/andar.asm"
 .include "./scripts/maps.asm"
@@ -10,18 +9,21 @@
 # 0 - Player State Free
 # 1 - Player State WALK
 # 3 - DEATH?
+.data
 LOLO_FRAME: .byte 0	# o lolo possui 5 frames para cada dir. Como definir isso mais adiante para os inimigos?
 POS_X:  .half 0               # x e y
 POS_Y:  .half 0
 # O vetor DIR guarda a última direção para a qual o sprite olhou
 # Vai de 0 até 3, seguindo o sentido de um plano cartesiano
 DIR:    .byte 3
-
-POWER: .half 2
-MAP: .byte 0
-CHEST: .half 0
-
 FALSE: .byte 0
+HUD_LOLO: .half 3
+# POWER
+POWER_CHARGE: .byte 2
+POWER_DIR: .byte 0
+POWER_POSX: .half 0
+POWER_POSY: .half 0
+POWER_EXIST: .byte 0
 .text
 # -----------------------------------------------------------------------------
 # Imprimir na tela o menu inicial
@@ -47,7 +49,7 @@ WAIT_START:
 	li t0, MMIO_set # ready bit MMIO
 	lb t1,(t0)
 	beqz t1, WAIT_START # wait time enquanto ready bit == 0
-
+	
 LOAD_MAP_START:
 	# Elementos do Mapa 1
 	# Corações
@@ -61,8 +63,6 @@ LOAD_MAP_START:
 	# Load HUD
 	li a6,248
 	print_img(hud,a6,s0,0xFF000000)
-	li a6,5368
-	animate_sprite(lolo_4_dir,a6,FALSE,DIR)
 	li a6,15608
 	#animate_sprite(digits,a6,LOLO_FRAME,DIR)
 	# -------------------------------------
@@ -80,17 +80,140 @@ GAME_LOOP:
 	li t1,0
 	li t0, MMIO_set # ready bit MMIO
 	lb t1,(t0)
-	beqz t1, GAME_LOOP # wait time enquanto ready bit == 0
+	beqz t1,SKIP_MMIO_ADD # skip lolo routine enquanto ready bit == 0
 	li a0, MMIO_add # Data address MMIO
 	lw a0,(a0) # Recupera o valor de MMIO
-	move(a0,lolo_4_dir,lolo_walk,map_start,s1,s2)
-	
+	move(a0,lolo_4_dir,lolo_walk,map_start,s1,s2,POS_X,POS_Y,LOLO_FRAME,DIR)
+	# update dir
+SKIP_MMIO_ADD:
+	call MAP0_ROUTINE
+	li a5,208
+	li a6,16
+	clear_sprite(map_start,a5,a6)
+	li a6,5368
+	animate_sprite(lolo_4_dir,a6,FALSE,HUD_LOLO)
 	# Update HUD
+	call PROPAGATE_POWER
 	
 	j GAME_LOOP
 	Exit()
+
+MAP0_ROUTINE:
+ENEMY_ROUTINE:
+	# Rotina de printar cada inimigo:
+	# checar se o inimigos está vivo:
+	la t0,ENEMY0_LIVE
+	lb t0,0(t0)
+	li t1,1
+	bne t0,t1,SKIP_ENEMY_PRINT
+	load_other_pos(a5,a6,ENEMY0_XY)
+	lagarta_dir(s1,a5,ENEMY0_DIR,ENEMY0_OLDDIR)
+	la t0,ENEMY0_DIR
+	lw t0,0(t0)
+	la t1,ENEMY0_OLDDIR
+	lw t1,0(t1)
+	beq t1,t0,SKIP_ENEMY_PRINT
+	clear_sprite(map_start,a5,a6)
+	find_grid_pos(a5,a6)
+	animate_sprite(lagarta,a6,FALSE,ENEMY0_DIR)
+SKIP_ENEMY_PRINT:
+	li a6,0
+	li a5,0
+	ret
+HEARTS_ROUTINE:
+
+# Rotina do Poder
+POWER_ROUTINE:
+	# checar se o lolo tem cargas de poder
+	la t0,POWER_CHARGE
+	lh t0,0(t0)
+	blez t0,SKIP_CASTING
+	# permitir apenas um cast por vez
+	la t1,POWER_EXIST
+	lb t1,0(t1)
+	bnez t1,SKIP_CASTING
+	# diminuir em 1 o número de cargas
+	li t1,1
+	sub t0,t0,t1
+	sh t0,POWER_CHARGE,t1
+	# encontrar a posição e a direção de propagação do poder
+	# a partir do Lolo
+	la t0,DIR
+	lb t0,0(t0)
+	sb t0,POWER_DIR,t1
+CREATE_POWER:
+	li t1 1
+	sb t1,POWER_EXIST,t2 # atualizar POWER_EXIST para true
+	load_other_pos(s5,s6,POS_X,POS_Y) # Carregar a posição do lolo
+	update_pos(s5,s6,POWER_POSX,POWER_POSY,t3) # Passa para o poder a posição do lolo
+	# checar por colisões enquanto movimenta
+PROPAGATE_POWER:
+	la t1,POWER_EXIST # checar se existe o poder a ser propagado
+	lb t1,0(t1)
+	beqz t1,SKIP_CASTING
 	
+	la t0,POWER_DIR # encontrar a direção do poder
+	lb t0,0(t0)
+	beqz t0,PROPAGATE_POWER_X
+	li t1,2
+	bne t0,t1,PROPAGATE_POWER_Y
+PROPAGATE_POWER_X:
+	load_pos(POWER_POSX,POWER_POSY,s5,s6)
+
+	la t0,POWER_DIR
+	lb t0,0(t0)
+	bnez t0,NEG_X_MV
+	li t2,4
+	j INCREASE_POWER_POSITIONX
+NEG_X_MV:
+	li t2,-4
+INCREASE_POWER_POSITIONX:
+	li t3,0
+	li s9,1
+	check_collision(s5,s6,t2,t3,s9)
+	bgtz s9,DESTROY_COLLIDED_OBJECT
+	update_pos(s5,s6,POWER_POSX,POWER_POSY,t3)
+	clear_sprite(map_start,s5,s6)
+	find_grid_pos(s5,s6)
+	animate_sprite(power,s6,FALSE,POWER_DIR)
+	j SKIP_CASTING
+PROPAGATE_POWER_Y:
+	#increment_pos_reg(a5,a6,%r1,%r2)
+	#update_pos(a5,a6,POWER_POSX,POWER_POSY,t3)
+	#check_collision(a5,a6,a5,a6)
+SKIP_CASTING:
+	li t2 0
+	ret
+
+# Destruir objeto com o qual o poder colidiu:
+DESTROY_COLLIDED_OBJECT:
+	li t1,0
+	sb t1,POWER_EXIST,t2
+	# encontrar a direção de propagação
+	find_dir(POWER_DIR,s7,s11,16)
+
+START_DESTRUCTION:
+	load_pos(POWER_POSX,POWER_POSY,s5,s6)
+	increment_pos_numb(s5,s6,s7,s11)
+	clear_sprite(map_start,s5,s6)
+	la s8,MAP0
+	find_grid_pos(s5,s6)
+	check_col_type(s6,2,s8)
+	li t0,2
+	beq s9,t0,KILL_EVERYTHING
+
+SKIP_OBJECT_DESTRUCTION:
+	ret
+
+# Set the enemy state live to false
+# -> como encontrar o inimigo pela sua posição?
+KILL_EVERYTHING:
+	li t1,0
+	sw t1,ENEMY0_LIVE,t0
+	ret
+
 GLOBAL_PAUSE:
+	li t1,0
 	li t0, MMIO_set # ready bit MMIO
 	lb t1,(t0)
 	beqz t1, GLOBAL_PAUSE # wait time enquanto ready bit == 0
@@ -99,8 +222,6 @@ GLOBAL_PAUSE:
 	li s3,ESC
 	bne a0,s3,GAME_LOOP
 	j GLOBAL_PAUSE
-	
-
 # Pensamentos sobre a impressão de imagens:
 # para printar uma imagem na tela com o script (em andar.asm) todos os registradores temp são usados,
 # por conta disso, talvez gere complicações realizar algo mais detalhado do que isso. (-> hora de receber input do teclado)
@@ -129,4 +250,6 @@ GLOBAL_PAUSE:
 .include "./assets/assets_data/digits.data"
 .include "./assets/assets_data/hud.data"
 .include "./assets/assets_data/chests.data"
+.include "./assets/assets_data/lagarta.data"
+.include "./assets/assets_data/power.data"
 #.include "./scripts/ost.asm"
