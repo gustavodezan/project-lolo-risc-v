@@ -124,7 +124,7 @@ END_FRAME:
 # %x_mv e %y_mv são os registradores que guardam a posição do lolo movimentado
 # %imm_x e %imm_y são os imediatos que indicam o quanto os pixels do sprite devem ser deslocados
 # %treg é o registrador de retorno
-
+# OBS.: não passar t0 como argumento
 .macro get_point(%x_mv,%y_mv,%imm_x,%imm_y,%treg)
 	li t0,%imm_x
 	sub t5,%x_mv,t0
@@ -204,9 +204,9 @@ W_DOWN:
 END_CHECK_INPUT:
 .end_macro
 
-# -------------------------
-# Enemy Functions
-# -------------------------
+# -----------------------------------------
+# Enemy Functions & Other Related Funcitons
+# -----------------------------------------
 
 # Enemy finder
 # checar o matrix enemy count para saber o número de vezes que o loop deve rodar
@@ -283,35 +283,70 @@ HALF_DIR1:
 END_UPDATE_OTHER_DIR:
 .end_macro
 
+# %imm é o valor para o qual será settado a posição da matriz
+.macro change_matrix_value(%enemy_xy,%matrix,%imm)
+	# encontrar enemey_matrix_pos a partir de x y
+	la t1,%enemy_xy
+	lw t2,4(t1)
+	lw t1,0(t1)
+	get_point(t1,t2,56,32,t6) # retorna o ponto do inimigo na matriz
+	slli t6,t6,2 # multiplica o ponto pelo número de intervalos da word
+	la t0,%matrix
+	add t0,t0,t6 # movimenta a matriz para o valor desejado
+	lb t1,0(t0)
+	li t2,%imm 
+	mv t1,t2 # troca o valor anterior pelo novo
+	sb t1,(t0)
+.end_macro
+
+# encontra a posição superior esquerda de uma posição na matrix no grid 
+# %r1 é o retorno de x
+# %r2 é o retorno de y
+.macro find_grid_with_matrix(%matrixpos,%r1,%r2)
+	
+.end_macro
+
 # encontra a direção para a qual algum objeto estava se deslocando
 # adiciona um valor de movimento (%imm) nessa direção
 # %xdir e %ydir são os registradores que vão receber o valor do deslocamento de posição
 .macro find_dir(%label,%xdir,%ydir,%imm)
 	li %xdir 0
 	li %ydir 0
-	la t0,POWER_DIR
+	la t0,%label
 	lb t0,0(t0)
 	bnez t0,CHECK_IF_1
 	li %xdir,%imm
-	j START_DESTRUCTION
+	j DIR_FOUND
 CHECK_IF_1:
 	li t3,1
 	beq t3,t0,CHECK_IF_2
 	li %ydir,-%imm
-	j START_DESTRUCTION
+	j DIR_FOUND
 CHECK_IF_2:
 	li t3,2
 	beq t3,t0,IS_3
 	li %xdir,-%imm
-	j START_DESTRUCTION
+	j DIR_FOUND
 IS_3:
 	li %ydir,%imm
+DIR_FOUND:
 .end_macro
 
 # -------------------------
-# Music
+# Music & Sound Effects
 # -------------------------
-.macro MUSIC_PLAY(%NUM,%NOTAS,%a2,%a3) #ENDEREÇO WORD DA QUANTIDADE DE NOTAS, ENDEREÇO DAS NOTAS, INSTRUMENTO, VOLUME
+.macro sound_effect(%a0,%a1,%a2,%a3)
+    li a0 %a0
+    li a1 %a1
+    li a2 %a2
+    li a3 %a3
+    li a7 31
+    ecall
+.end_macro
+
+.macro Song(%NUM,%NOTAS,%a2,%a3) #ENDEREÇO WORD DA QUANTIDADE DE NOTAS, ENDEREÇO DAS NOTAS, INSTRUMENTO, VOLUME
+.data
+.text
 	la s4 %NUM        # define o endereÃ§o do nÃºmero de notas
 	lw s5 0(s4)        # le o numero de notas
 	la s4 %NOTAS        # define o endereÃ§o das notas
