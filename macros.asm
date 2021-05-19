@@ -311,9 +311,7 @@ IS_3:
 # -------------------------
 # Music
 # -------------------------
-.macro Song(%NUM,%NOTAS,%a2,%a3) #ENDEREÇO WORD DA QUANTIDADE DE NOTAS, ENDEREÇO DAS NOTAS, INSTRUMENTO, VOLUME
-.data
-.text
+.macro MUSIC_PLAY(%NUM,%NOTAS,%a2,%a3) #ENDEREÇO WORD DA QUANTIDADE DE NOTAS, ENDEREÇO DAS NOTAS, INSTRUMENTO, VOLUME
 	la s4 %NUM        # define o endereÃ§o do nÃºmero de notas
 	lw s5 0(s4)        # le o numero de notas
 	la s4 %NOTAS        # define o endereÃ§o das notas
