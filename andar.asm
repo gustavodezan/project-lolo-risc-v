@@ -8,6 +8,7 @@
 .eqv FOUR 4
 .eqv ESC 27
 .eqv R 114
+.eqv SPACE 32
 
 # Objetivo da macro de printar sprite:
 # Printar ao mesmo tempo em que cuida da animação
@@ -35,7 +36,7 @@
 	# Após isso, multiplicar por t1, que será o intervalo de pixels de cada direção
 	# Ao somar o valor gerado em t4 chega-se no novo valor inicial da imagem.
 	la t4,%dir
-	lh t4,0(t4)
+	lb t4,0(t4)
 	mul t4,t1,t4
 	add t0,t0,t4
 	
@@ -111,19 +112,16 @@ BREAK_PRINT:
 # %old_sprite -> recebe a imagem do back_ground que será reimpressa
 # %x e %y serão passados para que o vetor deles seja gerado a partir deles.
 # o movimento é computado de 4 em 4 pixels
-.macro move(%reg,%sprite,%sprite_walk,%old_sprite,%x,%y)
+.macro move(%reg,%sprite,%sprite_walk,%old_sprite,%x,%y,%posx,%posy,%sframe,%sdir)
 	# Gerar vetor X por Y
 	# -> o vetor da pos inicial deve ser gerado antes de chamar o clear pela primeira vez
-	li s9,320
-	mul s10,%y,s9
-	add s10,s10,%x
-	clear_sprite(%sprite,%old_sprite,%x,%y)
+	clear_sprite(%old_sprite,%x,%y)
 	check_input(%reg)
 	beqz t2,PRINT_SCAPE
 	
 COMPUT_MOVEMENT:
 	# Armazenar o valor do input do movimento em t2 para X e t3 para Y
-	update_dir(t4,DIR,t5)
+	update_dir(t4,%sdir,t5)
 	li t2,4
 	mul t2,t2,t0
 	li t3,4
@@ -131,17 +129,16 @@ COMPUT_MOVEMENT:
 	
 ANDAR_START:
 	# Incrementar X e Y com os valores de t2 e t3
-	# Chamar check_collision(t2,t3)
-	
-	check_collision(%x,%y,t2,t3)
+	li s5,0
+	check_collision(%x,%y,t2,t3,s9)
 	
 	li s9,320
 	
 	
-	update_pos(s1,s2,POS_X,POS_Y,t2)
+	update_pos(s1,s2,%posx,%posy,t2)
 	mul s10,%y,s9
 	add s10,s10,%x
-	animate_sprite(%sprite_walk,s10,LOLO_FRAME,DIR)
+	animate_sprite(%sprite_walk,s10,%sframe,%sdir)
 	#print_img(%sprite,s10)
 	j BREAK_WALK
 	
@@ -152,7 +149,7 @@ PRINT_SCAPE:
 	li s9,320
 	mul s10,%y,s9
 	add s10,s10,%x
-	animate_sprite(%sprite,s10,FALSE,DIR)
+	animate_sprite(%sprite,s10,LOLO_FRAME,%sdir)
 
 BREAK_WALK:
 .end_macro
@@ -160,7 +157,7 @@ BREAK_WALK:
 # Player collision deve vir sempre que for chamada a função de movimentar o jogador
 # Desse modo, será checado se há colisão no próximo espaço que o Lolo irá ocupar
 # se houver, ele não movimenta, se estiver livre, ele movimenta normalmente
-.macro check_collision(%x,%y,%x_mv,%y_mv)
+.macro check_collision(%x,%y,%x_mv,%y_mv,%col_type)
 	# Checar se está em uma das bordas do mapa
 	# como todas as unidades estão sujeitas ao mapa, serve para todas
 	mv t5,%x_mv
@@ -190,39 +187,58 @@ BREAK_WALK:
 	get_point(%x_mv,%y_mv,56,32,t6)
 	check_col_type(t6,1,s8)
 	beq t1,t0,END_CHECK_COLLISION
+	li t1,2
+	beq t1,t0,CHECK_COLLISION_TYPE
 	li t1,8
 	beq t1,t0,END_CHECK_COLLISION
 	
 	get_point(%x_mv,%y_mv,44,32,t6)
 	check_col_type(t6,1,s8)
 	beq t1,t0,END_CHECK_COLLISION
+	li t1,2
+	beq t1,t0,CHECK_COLLISION_TYPE
 	li t1,8
 	beq t1,t0,END_CHECK_COLLISION
 	
 	get_point(%x_mv,%y_mv,56,20,t6)
 	check_col_type(t6,1,s8)
 	beq t1,t0,END_CHECK_COLLISION
+	li t1,2
+	beq t1,t0,CHECK_COLLISION_TYPE
 	li t1,8
 	beq t1,t0,END_CHECK_COLLISION
 	
 	get_point(%x_mv,%y_mv,44,20,t6)
 	check_col_type(t6,1,s8)
 	beq t1,t0,END_CHECK_COLLISION
+	li t1,2
+	beq t1,t0,CHECK_COLLISION_TYPE
 	li t1,8
 	beq t1,t0,END_CHECK_COLLISION
 
 ESCAPE_CHECK_COL:
 	increment_pos_reg(%x,%y,%x_mv,%y_mv)
+	li %col_type,0
+	j END_CHECK_COLLISION
+CHECK_COLLISION_TYPE:
+	beqz %col_type,END_CHECK_COLLISION
+	mv %col_type,t1 # se a colisão for do poder, informar que a colisão ocorreu
 
 END_CHECK_COLLISION:
+
 .end_macro
 
-.macro clear_sprite(%sprite,%old_sprite,%x,%y)
-	CLEAR:
-	la t0,%sprite # carregar o endereço do sprite em t0 apenas para passar para t1 e t2
+.macro move_other()
+
+.end_macro
+
+.macro clear_sprite(%old_sprite,%x,%y)
+CLEAR:
+	li s9,320
+	mul s10,%y,s9
+	add s10,s10,%x
 	li t1,16
-	lw t2, 4(t0) # y -> segunda word
-	mul t3,t1,t2 # x * y para obter a área -> t3 = área
+	mul t3,t1,t1 # x * y para obter a área -> t3 = área
 	la t0,%old_sprite # carregar em t0 o valor do sprite anterior, para acessar as cores dele
 	addi t0,t0,8
 	li s0, 0xFF000000
