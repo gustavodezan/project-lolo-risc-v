@@ -215,19 +215,20 @@ END_CHECK_INPUT:
 	la t4,%enemycount
 	lw t4,0(t4) # dfine em t4 o valor máximo do contador
 	
+	find_dir(%label,%xdir,%ydir,%imm)
+	
 	la t1,%collisionposx
 	lw t1,0(t1)
 	la t2,%collisionposy
 	lw t2,0(t2)
+	
 	# com as posições da colisão, encontrar o relativo dela na matriz
 	
 	
-	
-	li t3 0 # define o contador em 0 
+	li t3 0 # define o contador em 0
 LOOKING_FOR_ENEMY:
 	
-	pp(t4,4)
-
+	pp(t4)
 .end_macro
 
 # %r1 registrador de x
