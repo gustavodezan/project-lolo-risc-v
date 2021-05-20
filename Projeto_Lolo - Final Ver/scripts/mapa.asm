@@ -1,0 +1,14 @@
+LOOP_CHECK_COL_POS:
+	bltz %x_mv,END_CHECK_COLLISION
+	bltz %y_mv,END_CHECK_COLLISION
+	beq t4,s11,ESCAPE_CHECK_COL
+	lb t0,0(s8)
+	bne t5,t0,SKIP_DIFERENCE_POS
+	lb t0,4(s8)
+	#li t1,1
+	#sub t0,t0,t1
+	beq t6,t0,END_CHECK_COLLISION
+SKIP_DIFERENCE_POS:
+	addi s8,s8,8
+	addi t4,t4,2
+	j LOOP_CHECK_COL_POS
