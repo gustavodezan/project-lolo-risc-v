@@ -1,7 +1,7 @@
 .include "./scripts/macros.asm"
 .include "./scripts/andar.asm"
 .include "./scripts/maps.asm"
-.include "./scripts/musics.asm"
+.include "./scripts/music.asm"
 #.include "./scripts/jump_macros.asm"
 .eqv MMIO_add 0xff200004 # Data (ASCII value)
 .eqv MMIO_set 0xff200000 # Control (boolean)
@@ -27,6 +27,8 @@ POWER_DIR: .byte 0
 POWER_POSX: .half 0
 POWER_POSY: .half 0
 POWER_EXIST: .byte 0
+#MAP_IMG: .word 208,224
+.byte
 .text
 # -----------------------------------------------------------------------------
 # Imprimir na tela o menu inicial
@@ -34,6 +36,7 @@ POWER_EXIST: .byte 0
 li s0,0xFF100000
 
 LOAD_GAME_START:
+	#new2old_map(MAP_IMG,map_start)
 	# carrega em s1 e s0 as posiÃ§Ãµes de inÃ­cio do lolo
 	li s1,56
 	li s2,112
@@ -46,6 +49,8 @@ LOAD_GAME_START:
 	sw t2,0(s0)
 	print_img(map_start,a6,s0,0xFF000000)
 	li a6,0
+	# Descomentar música
+	#play_music(NUM0,NOTAS0,5,30,32)
 	
 WAIT_START:
 	li t0, MMIO_set # ready bit MMIO
@@ -65,8 +70,6 @@ LOAD_MAP_START:
 	# Load HUD
 	li a6,248
 	print_img(hud,a6,s0,0xFF000000)
-	li a6,15608
-	#animate_sprite(digits,a6,LOLO_FRAME,DIR)
 	li a6,5368
 	animate_sprite(lolo_4_dir,a6,FALSE,HUD_LOLO)
 	
@@ -320,6 +323,10 @@ V_END_CHECK_INPUT: j END_CHECK_INPUT
 V_OPEN_CHEST: j OPEN_CHEST
 V_HEART_FOUND: j HEART_FOUND
 V_CHANGE_STAGE: j CHANGE_STAGE
+V_STAGE_1: j STAGE_1
+V_STAGE_2: j STAGE_2
+V_STAGE_3: j STAGE_3
+V_STAGE_4: j STAGE_4
 # Rotina do Poder
 POWER_ROUTINE:
 	# checar se o lolo tem cargas de poder
@@ -424,29 +431,30 @@ CHANGE_STAGE:
 	la t0,MAP
 	lb t0,0(t0)
 
-	beqz t0,STAGE_1
+	beqz t0,V_STAGE_1
 	li t1,1
-	beq t0,t1,STAGE_2
+	beq t0,t1,V_STAGE_2
 	li t2,2
-	beq t0,t2,STAGE_3
+	beq t0,t2,V_STAGE_3
 	li t3,3
-	beq t0,t3,STAGE_4
-	li t4,4
-	beq t0,t4,STAGE_5
+	beq t0,t3,V_STAGE_4
+	#li t4,4
+	#beq t0,t4,V_STAGE_5
 
 STAGE_1:
 	li t0,0
 	la t1,STAGE_CLEAR
 	sb t0,0(t1)
 	# Increase Map Count
-	li t0,1
 	la t1,MAP
-	add t1,t1,t0
+	li t0,1
+	sb t0,0(t1)
 	# Upgrade Matrix
 	upgrade_matrix(CURRENT_MAP,MAP1)
 	# Load New Enemy Values
 	load_enemy_xy(ENEMY0_XY,ENEMY1_XY)
 	load_enemy_values(ENEMY0_DIR,ENEMY1_DIR)
+	load_enemy_values(ENEMY0_LIVE,ENEMY1_LIVE)
 	load_enemy_values(ENEMY0_OLDDIR,ENEMY1_OLDDIR)
 	load_enemy_values(ENEMY0_LIVE,ENEMY1_LIVE)
 	load_enemy_values(MAP0_MATRIXPOS_PER_ENEMY,MAP1_MATRIXPOS_PER_ENEMY)
@@ -477,9 +485,6 @@ STAGE_1:
 	la t1,POWER_CHARGE
 	li t0,0
 	sb t0,0(t1)
-	
-	
-	
 	li a6,40
 	print_img(map_start,a6,s0,0xFF000000)
 	li a6 15480
@@ -488,13 +493,142 @@ STAGE_1:
 	print_img(collectable,a6,s0,0xFF000000)
 	li a6, 56440
 	animate_sprite(chests,a6,FALSE,CHEST0)
+	j LETS_GO
 STAGE_2:
-
+	li t0,0
+	la t1,STAGE_CLEAR
+	sb t0,0(t1)
+	# Increase Map Count
+	la t1,MAP
+	li t0,2
+	sb t0,0(t1)
+	# Upgrade Matrix
+	upgrade_matrix(CURRENT_MAP,MAP2)
+	# Load New Enemy Values
+	load_enemy_xy(ENEMY0_XY,ENEMY2_XY)
+	load_enemy_values(ENEMY0_DIR,ENEMY2_DIR)
+	load_enemy_values(ENEMY0_LIVE,ENEMY2_LIVE)
+	load_enemy_values(ENEMY0_OLDDIR,ENEMY2_OLDDIR)
+	load_enemy_values(ENEMY0_LIVE,ENEMY2_LIVE)
+	load_enemy_values(MAP0_MATRIXPOS_PER_ENEMY,MAP2_MATRIXPOS_PER_ENEMY)
+	load_enemy_values(MAP0_ENEMY_COUNT,MAP2_ENEMY_COUNT)
+	# Load Hearts Positions
+	load_enemy_values(EXISTING_COLLECTABLE0,EXISTING_COLLECTABLE2)
+	load_new_values(COLLECTABLE0_POS,COLLECTABLE2_POS,EXISTING_COLLECTABLE2,8)
+	load_new_values(COLLECTABLE0_MATRIX,COLLECTABLE2_MATRIX,EXISTING_COLLECTABLE2,4)
+	load_enemy_values(COLLECTED0,COLLECTED2)
+	load_new_values(COLLECT_POWER_INCREASE0,COLLECT_POWER_INCREASE2,EXISTING_COLLECTABLE2,4)
+	# ATT chest Position
+	load_enemy_xy(CHEST0_POS,CHEST2_POS)
+	li t0,0
+	la t1,CHEST0
+	sb t0,0(t1)
+	# Reset Lolo Power
+	la t1,POWER_CHARGE
+	li t0,0
+	sb t0,0(t1)
+	# Att Lolo Position
+	# Apaga o Lolo
+	load_pos(POS_X,POS_Y,s1,s2)
+	clear_sprite(map_start,s1,s2)
+	li s1,136
+	li s2,192
+	update_pos(s1,s2,POS_X,POS_Y,t2)
+	li s9,320
+	mul s10,s2,s9
+	add s10,s10,s1
+	animate_sprite(lolo_walk,s10,LOLO_FRAME,DIR)
+	
+	# pass new_map to old_map
+	print_img(clean_back,zero,s0,0xFF000000)
+	new2old_map(map_start,map2)
+	li a6,40
+	print_img(map_start,a6,s0,0xFF000000)
+	# heart1
+	li a6 20600
+	print_img(collectable,a6,s0,0xFF000000)
+	# heart2
+	li a6, 51336
+	print_img(collectable,a6,s0,0xFF000000)
+	# heart3
+	li a6, 51352
+	print_img(collectable,a6,s0,0xFF000000)
+	# chest
+	li a6, 61496
+	animate_sprite(chests,a6,FALSE,CHEST0)
+	j LETS_GO
 STAGE_3:
-
+	li t0,0
+	la t1,STAGE_CLEAR
+	sb t0,0(t1)
+	# Increase Map Count
+	la t1,MAP
+	li t0,3
+	sb t0,0(t1)
+	# Upgrade Matrix
+	upgrade_matrix(CURRENT_MAP,MAP3)
+	# Load New Enemy Values
+	load_enemy_xy(ENEMY0_XY,ENEMY3_XY)
+	load_enemy_values(ENEMY0_DIR,ENEMY3_DIR)
+	load_enemy_values(ENEMY0_LIVE,ENEMY3_LIVE)
+	load_enemy_values(ENEMY0_OLDDIR,ENEMY3_OLDDIR)
+	load_enemy_values(ENEMY0_LIVE,ENEMY3_LIVE)
+	load_enemy_values(MAP0_MATRIXPOS_PER_ENEMY,MAP3_MATRIXPOS_PER_ENEMY)
+	load_enemy_values(MAP0_ENEMY_COUNT,MAP3_ENEMY_COUNT)
+	# Load Hearts Positions
+	load_enemy_values(EXISTING_COLLECTABLE0,EXISTING_COLLECTABLE3)
+	load_new_values(COLLECTABLE0_POS,COLLECTABLE3_POS,EXISTING_COLLECTABLE3,8)
+	load_new_values(COLLECTABLE0_MATRIX,COLLECTABLE3_MATRIX,EXISTING_COLLECTABLE3,4)
+	load_enemy_values(COLLECTED0,COLLECTED3)
+	load_new_values(COLLECT_POWER_INCREASE0,COLLECT_POWER_INCREASE3,EXISTING_COLLECTABLE3,4)
+	# ATT chest Position
+	load_enemy_xy(CHEST0_POS,CHEST3_POS)
+	li t0,0
+	la t1,CHEST0
+	sb t0,0(t1)
+	# Reset Lolo Power
+	la t1,POWER_CHARGE
+	li t0,0
+	sb t0,0(t1)
+	# Att Lolo Position
+	# Apaga o Lolo
+	load_pos(POS_X,POS_Y,s1,s2)
+	clear_sprite(map_start,s1,s2)
+	li s1,136
+	li s2,192
+	update_pos(s1,s2,POS_X,POS_Y,t2)
+	li s9,320
+	mul s10,s2,s9
+	add s10,s10,s1
+	animate_sprite(lolo_walk,s10,LOLO_FRAME,DIR)
+	
+	# pass new_map to old_map
+	print_img(clean_back,zero,s0,0xFF000000)
+	new2old_map(map_start,map3)
+	li a6,40
+	print_img(map_start,a6,s0,0xFF000000)
+	# heart1
+	li a6 15416
+	print_img(collectable,a6,s0,0xFF000000)
+	# heart2
+	li a6, 15576
+	print_img(collectable,a6,s0,0xFF000000)
+	# heart3
+	li a6, 46152
+	print_img(collectable,a6,s0,0xFF000000)
+	# heart4
+	li a6, 46208
+	print_img(collectable,a6,s0,0xFF000000)
+	# heart5
+	li a6, 61576
+	print_img(collectable,a6,s0,0xFF000000)
+	# chest
+	li a6, 56376
+	animate_sprite(chests,a6,FALSE,CHEST0)
+	j LETS_GO
 STAGE_4:
-
-STAGE_5:
+LETS_GO:
+	play_music(NUM2,NOTAS2,99,40,31)
 	j GAME_LOOP
 # Registradores salvos utilizados:
 # s0 -> é definido na hora de printar a imagem em seu valor base; depende de s10
@@ -515,6 +649,8 @@ STAGE_5:
 .include "./assets/assets_data/lolo_walk.data"
 .include "./assets/assets_data/clean_back.data"
 .include "./assets/assets_data/map_start.data"
+.include "./assets/assets_data/map2.data"
+.include "./assets/assets_data/map3.data"
 .include "./assets/assets_data/collectable.data"
 .include "./assets/assets_data/digits.data"
 .include "./assets/assets_data/hud.data"
