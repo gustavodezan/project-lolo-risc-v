@@ -1,15 +1,15 @@
 # -----------------------------------------
 # 		   Macros
 # -----------------------------------------
-# macro trecho de cÛdigo (~chamada de funÁ„o)
+# macro trecho de c√≥digo (~chamada de fun√ß√£o)
 
 # -----------------------------------------
-# 	Macros de operaÁıes:
+# 	Macros de opera√ß√µes:
 # -----------------------------------------
 
 # multiplicador e divisor
 # multiplica %reg por %imm e guarda em %result
-# ou faz a mesma operaÁ„o para divis„o
+# ou faz a mesma opera√ß√£o para divis√£o
 .macro mult_div(%op,%result,%reg,%imm)
 	li %result,%imm
 	%op %result,%reg,%result
@@ -32,13 +32,13 @@
 .end_macro
 
 # ---------------------------------------
-# 	"FunÁıes" do Jogo
+# 	"Fun√ß√µes" do Jogo
 # ---------------------------------------
 
 # -------------------
-# FunÁıes de PosiÁ„o
+# Fun√ß√µes de Posi√ß√£o
 # -------------------
-# Carrega o valor armazenado nas labels de posiÁ„o nos registradores de movimento
+# Carrega o valor armazenado nas labels de posi√ß√£o nos registradores de movimento
 .macro load_pos(%label_x,%label_y, %x, %y)
 	la %x,%label_x
 	la %y,%label_y
@@ -46,7 +46,7 @@
 	lh %y,0(%y)
 .end_macro
 
-# Carrega o valor dos registradores de movimento nas labels de posiÁ„o
+# Carrega o valor dos registradores de movimento nas labels de posi√ß√£o
 .macro update_pos(%x,%y,%label_x,%label_y,%temp)
 	sh %x,%label_x,%temp
 	sh %y,%label_y,%temp
@@ -58,30 +58,30 @@
 	mv %y,%r2
 .end_macro
 
-# incrementa o valor da posiÁ„o pelo valor de outros 2 registradores
+# incrementa o valor da posi√ß√£o pelo valor de outros 2 registradores
 .macro increment_pos_numb(%x,%y,%r1,%r2)
 	add %x,%x,%r1
 	add %y,%y,%r2
 .end_macro
 
-# %r1 È o registrador do ˙ltimo movimento no eixo
-# %DIR È a label que guarda a informaÁ„o da ˙ltima direÁ„o
+# %r1 √© o registrador do √∫ltimo movimento no eixo
+# %DIR √© a label que guarda a informa√ß√£o da √∫ltima dire√ß√£o
 .macro update_dir(%r1,%DIR,%temp)
 	sh %r1,%DIR,%temp
 .end_macro
 
-# ANIMA«¬O:
-# r1 passa o n˙mero de pixels de todos os frames da imagem
-# r2 passa o n˙mero de pixels de cada frame da imagem
-# frame contÈm a label que guarda o ˙ltimo frame da imagem
-# em ret fica o resultado de quantos pixels devem ser pulados para o novo ponto de inÌcio da imagem
+# ANIMA√á√ÇO:
+# r1 passa o n√∫mero de pixels de todos os frames da imagem
+# r2 passa o n√∫mero de pixels de cada frame da imagem
+# frame cont√©m a label que guarda o √∫ltimo frame da imagem
+# em ret fica o resultado de quantos pixels devem ser pulados para o novo ponto de in√≠cio da imagem
 .macro image_cicle(%sprite,%r1,%r2,%frame,%ret,%temp1,%temp3)
 	la %ret,%frame
 	lb %ret,0(%ret)
 	addi %temp1,%ret,1
 	mul %ret,%ret,%r2
 	sb %temp1,%frame,%temp3
-	# o valor dos frames deve ir de 0 atÈ o valor de t1
+	# o valor dos frames deve ir de 0 at√© o valor de t1
 	bge %ret,%r1,SKIP_FRAME
 	j END_FRAME
 SKIP_FRAME:
@@ -90,10 +90,10 @@ SKIP_FRAME:
 END_FRAME:
 .end_macro
 
-# %x_mv e %y_mv s„o os registradores que guardam a posiÁ„o do lolo movimentado
-# %imm_x e %imm_y s„o os imediatos que indicam o quanto os pixels do sprite devem ser deslocados
-# %treg È o registrador de retorno
-# OBS.: n„o passar t0 como argumento
+# %x_mv e %y_mv s√£o os registradores que guardam a posi√ß√£o do lolo movimentado
+# %imm_x e %imm_y s√£o os imediatos que indicam o quanto os pixels do sprite devem ser deslocados
+# %treg √© o registrador de retorno
+# OBS.: n√£o passar t0 como argumento
 .macro get_point(%x_mv,%y_mv,%imm_x,%imm_y,%treg)
 	li t0,%imm_x
 	sub t5,%x_mv,t0
@@ -107,8 +107,8 @@ END_FRAME:
 END_CHECK_HITBOX:
 .end_macro
 
-# %imm È o valor para o qual ser· settado a posiÁ„o da matriz
-# %jumper È o que ser· pulado na macro
+# %imm √© o valor para o qual ser√° settado a posi√ß√£o da matriz
+# %jumper √© o que ser√° pulado na macro
 .macro change_matrix_value(%enemy_xy,%matrix,%imm,%jumper)
 	# encontrar enemey_matrix_pos a partir de x y
 	la t1,%enemy_xy
@@ -116,7 +116,7 @@ END_CHECK_HITBOX:
 	lw t2,4(t1)
 	lw t1,0(t1)
 	get_point(t1,t2,56,32,t6) # retorna o ponto do inimigo na matriz
-	slli t6,t6,2 # multiplica o ponto pelo n˙mero de intervalos da word
+	slli t6,t6,2 # multiplica o ponto pelo n√∫mero de intervalos da word
 	la t0,%matrix
 	add t0,t0,t6 # movimenta a matriz para o valor desejado
 	lb t1,0(t0)
@@ -125,10 +125,10 @@ END_CHECK_HITBOX:
 	sb t1,(t0)
 .end_macro
 
-# %sprite È o registrador que carrega a posiÁ„o atual do sprite
-# %imm È o imediato do collision type do lolo
-# %matrix È a matriz do mapa
-# t0 È o registrador de retorno
+# %sprite √© o registrador que carrega a posi√ß√£o atual do sprite
+# %imm √© o imediato do collision type do lolo
+# %matrix √© a matriz do mapa
+# t0 √© o registrador de retorno
 .macro check_col_type(%sprite,%imm,%matrix)
 	slli t0,%sprite,2
 	add t0,%matrix,t0
@@ -141,12 +141,12 @@ END_CHECK_HITBOX:
 	add t0,%matrix,t0
 .end_macro
 
-# Os medidores de magnitude ser„o t0 e t1
-# t0 È a magnitude de X
-# t1 È a magnitude de Y
-# t4 È o atualizador de posiÁ„o
+# Os medidores de magnitude ser√£o t0 e t1
+# t0 √© a magnitude de X
+# t1 √© a magnitude de Y
+# t4 √© o atualizador de posi√ß√£o
 # t2 atualiza o state -> valor de true or false do input
-# Checar se È para a direita
+# Checar se √© para a direita
 # Resetando os valores de t0 e t1 para 0
 
 # -----------------------------------------
@@ -154,17 +154,17 @@ END_CHECK_HITBOX:
 # -----------------------------------------
 
 # Enemy finder
-# checar o matrix enemy count para saber o n˙mero de vezes que o loop deve rodar
-# o loop roda recebendo v·rias labels de inimigos para encontrar o que atende ‡ posiÁ„o
+# checar o matrix enemy count para saber o n√∫mero de vezes que o loop deve rodar
+# o loop roda recebendo v√°rias labels de inimigos para encontrar o que atende √† posi√ß√£o
 .macro enemy_finder(%enemypos,%enemycount,%colisionposx,%collisionposy)
 	la t4,%enemycount
-	lw t4,0(t4) # dfine em t4 o valor m·ximo do contador
+	lw t4,0(t4) # dfine em t4 o valor m√°ximo do contador
 	find_dir(%label,%xdir,%ydir,%imm)
 	la t1,%collisionposx
 	lw t1,0(t1)
 	la t2,%collisionposy
 	lw t2,0(t2)
-	# com as posiÁıes da colis„o, encontrar o relativo dela na matriz
+	# com as posi√ß√µes da colis√£o, encontrar o relativo dela na matriz
 	li t3 0 # define o contador em 0
 LOOKING_FOR_ENEMY:
 	pp(t4)
@@ -193,7 +193,7 @@ LOOKING_FOR_ENEMY:
 
 # Lagarta
 # recebe x da lagarta e x do lolo
-# encontrar x da lagar + e - 16, para as posiÁıes 2 e 1, e 0 e 3 para x menores e maiores
+# encontrar x da lagar + e - 16, para as posi√ß√µes 2 e 1, e 0 e 3 para x menores e maiores
 .macro lagarta_dir(%lolo,%x,%label,%old_label)
 	la t0,%label
 	lb t0,0(t0)
@@ -222,13 +222,13 @@ HALF_DIR1:
 END_UPDATE_OTHER_DIR:
 .end_macro
 
-# encontra a posiÁ„o superior esquerda de uma posiÁ„o na matrix no grid 
-# %r1 È o retorno de x
-# %r2 È o retorno de y
+# encontra a posi√ß√£o superior esquerda de uma posi√ß√£o na matrix no grid 
+# %r1 √© o retorno de x
+# %r2 √© o retorno de y
 
-# encontra a direÁ„o para a qual algum objeto estava se deslocando
-# adiciona um valor de movimento (%imm) nessa direÁ„o
-# %xdir e %ydir s„o os registradores que v„o receber o valor do deslocamento de posiÁ„o
+# encontra a dire√ß√£o para a qual algum objeto estava se deslocando
+# adiciona um valor de movimento (%imm) nessa dire√ß√£o
+# %xdir e %ydir s√£o os registradores que v√£o receber o valor do deslocamento de posi√ß√£o
 .macro find_dir(%label,%xdir,%ydir,%imm)
 	li %xdir 0
 	li %ydir 0
@@ -263,4 +263,58 @@ DIR_FOUND:
     li a3 %a3
     li a7 31
     ecall
+.end_macro
+
+# ---------------------------
+#  Map & Stage Functions
+# ---------------------------
+.macro upgrade_matrix(%current_map,%next_map)
+	la t0,%current_map
+	la t1,%next_map
+	li t2,121 # tamanho m√°ximo de qualquer matriz
+	li t3,0 # contador da matriz
+UPGRADING_THE_MATRIX:
+	beq t3,t2,MATRIX_UPGRADED
+	lb t4,0(t1)
+	sb t4,0(t0)
+	addi t1,t1,4
+	addi t0,t0,4
+	addi t3,t3,1
+	j UPGRADING_THE_MATRIX
+MATRIX_UPGRADED:
+.end_macro
+
+.macro load_enemy_xy(%current_pos,%new_pos)
+	la t0,%current_pos
+	la t1,%new_pos
+	lb t2,0(t1)
+	lb t3,4(t1)
+	sb t2,0(t0)
+	sb t3,4(t0)
+.end_macro
+
+.macro load_enemy_values(%current_value,%new_value)
+	la t0,%current_value
+	la t1,%new_value
+	lb t1,0(t1)
+	sb t1,0(t0)
+.end_macro
+
+# value_length √© o label que cont√©m o n√∫mero de objetos que devem ser iterados
+# %interval √© um imm que indica o intervalo que eles devem assumir
+.macro load_new_values(%current_value,%new_value,%value_length,%interval)
+	la t0,%current_value
+	la t1,%new_value
+	la t2,%value_length # tamanho m√°ximo de qualquer matriz
+	lb t2,0(t2)
+	li t3,0 # contador da matriz
+UPGRADING_THE_MATRIX:
+	beq t3,t2,MATRIX_UPGRADED
+	lb t4,0(t1)
+	sb t4,0(t0)
+	addi t1,t1,%interval
+	addi t0,t0,%interval
+	addi t3,t3,1
+	j UPGRADING_THE_MATRIX
+MATRIX_UPGRADED:
 .end_macro
