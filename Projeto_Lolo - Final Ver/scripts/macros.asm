@@ -265,6 +265,31 @@ DIR_FOUND:
     ecall
 .end_macro
 
+.macro play_music(%NUM,%NOTAS,%a2,%a3,%imm) #ENDEREÇO WORD DA QUANTIDADE DE NOTAS, ENDEREÇO DAS NOTAS, INSTRUMENTO, VOLUME
+    la s4 %NUM                # define o endereÃ§o do nÃºmero de notas
+    lw s5 0(s4)            #le o numero de notas
+    la s4 %NOTAS            # define o endereÃ§o das notas
+    li t0 0                # zera o contador de notas
+    li a2 %a2            # define o instrumento
+    li a3 %a3            # define o volume
+
+LOOP_MUSIC:
+                        # Se chegar ao final do contador vai repetir
+        lw a0 0(s4)            # le o valor da nota
+        lw a1 4(s4)            # le a duracao da nota
+        li a7 31            # define a chamada de syscall
+        ecall                       # toca a nota
+        mv a0 a1            # passa a duraÃ§Ã£o da nota para a pausa
+        li a7 %imm                       # define a chamada de syscal 
+        ecall                # realiza uma pausa de a0 ms
+        addi s4 s4 8            # incrementa para o endereÃ§o da prÃ³xima nota
+        addi t0 t0 1            # incrementa o contador de notas
+        beq t0 s5 REPEAT_MUSIC
+        j LOOP_MUSIC     
+                
+REPEAT_MUSIC:
+.end_macro
+
 # ---------------------------
 #  Map & Stage Functions
 # ---------------------------
@@ -319,33 +344,22 @@ UPGRADING_THE_MATRIX:
 MATRIX_UPGRADED:
 .end_macro
 
-.macro play_music(%NUM,%NOTAS,%a2,%a3,%imm) #ENDEREÇO WORD DA QUANTIDADE DE NOTAS, ENDEREÇO DAS NOTAS, INSTRUMENTO, VOLUME
-	la s4 %NUM        		# define o endereÃ§o do nÃºmero de notas
-	lw s5 0(s4)        	# le o numero de notas
-	la s4 %NOTAS       	 # define o endereÃ§o das notas
-	li t0 0           	 # zera o contador de notas
-	li a2 %a2        	# define o instrumento
-	li a3 %a3       	 # define o volume
-
-LOOP_MUSIC:
-    		    		# Se chegar ao final do contador vai repetir
-    	lw a0 0(s4)        	# le o valor da nota
-    	lw a1 4(s4)        	# le a duracao da nota
-    	li a7 31        	# define a chamada de syscall
-    	ecall
-    	#li a3 0            	# toca a nota
-    	mv a0 a1        	# passa a duraÃ§Ã£o da nota para a pausa
-    	li a7 %imm
-    	#li a3 %a3        	# define a chamada de syscal 
-    	ecall            	# realiza uma pausa de a0 ms
-    	addi s4 s4 8        	# incrementa para o endereÃ§o da prÃ³xima nota
-    	addi t0 t0 1        	# incrementa o contador de notas
-    	beq t0 s5 REPEAT_MUSIC
-    	j LOOP_MUSIC     
-                
-REPEAT_MUSIC:
-	#la s4 NOTAS0
-	#li t0 0
-	#call LOOP_MUSIC
-
+.macro new2old_map(%current_map,%next_map)
+	la t0,%current_map
+	la t1,%next_map
+	lw t2,0(t1)
+	lw t3,4(t1)
+	mul t2,t2,t3
+	addi t0,t0,4
+	addi t1,t1,4
+	li t3,0 # contador da matriz
+UPGRADING_THE_MATRIX:
+	beq t3,t2,MATRIX_UPGRADED
+	lb t4,0(t1)
+	sb t4,0(t0)
+	addi t1,t1,1
+	addi t0,t0,1
+	addi t3,t3,1
+	j UPGRADING_THE_MATRIX
+MATRIX_UPGRADED:
 .end_macro
