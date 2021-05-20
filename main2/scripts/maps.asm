@@ -2,14 +2,17 @@
 # ------------------------------------
 # Valores dos elementos das matrizes
 # ------------------------------------
-# 0 - FREE: espaÁos em que o lolo pode andar livremente
-# 1 - WALL: colis„o com objetos sÛlidos
-# os valores de 2 atÈ 6 ser„o reservados para diferentes tipos de inimigos?
+# 0 - FREE: espa√ßos em que o lolo pode andar livremente
+# 1 - WALL: colis√£o com objetos s√≥lidos
+# os valores de 2 at√© 6 ser√£o reservados para diferentes tipos de inimigos?
 # 2 - LAGARTA
-# 7 - HEARTS: coraÁıes colet·veis. N„o possuem colis„o
-# 8 - CHESTS: ba˙s - possuem colis„o enquanto o Lolo n„o tiver coletado todos os coraÁıes
-# 9 - DOOR: saÌda da fase
-# os valores podem crescer para alem de n˙meros de 1 dÌgito
+# 6 - CHEST_OPEN: ba√∫s colet√°vel, se lolo passar por cima, ele libera a pr√≥xima fase
+# 7 - HEARTS: cora√ß√µes colet√°veis. N√£o possuem colis√£o
+# 8 - CHESTS: ba√∫s - possuem colis√£o enquanto o Lolo n√£o tiver coletado todos os cora√ß√µes
+# 9 - DOOR: sa√≠da da fase
+# os valores podem crescer para alem de n√∫meros de 1 d√≠gito
+
+STAGE_CLEAR: 0
 
 # ----------------
 # CURRENT MAP
@@ -27,6 +30,8 @@ CURRENT_MAP:
 	1,1,1,1,8,0,0,0,1,1,0,
 	1,1,1,1,1,1,0,0,0,0,0
 
+MAP: 0
+
 # ----------------
 # MAPA 1:
 # ----------------
@@ -42,11 +47,10 @@ MAP0:	1,1,1,1,1,1,0,1,1,0,1,
 	1,1,1,1,8,0,0,0,1,1,0,
 	1,1,1,1,1,1,0,0,0,0,0
 	
-# PosiÁ„o dos coraÁıes
+# Posi√ß√£o dos cora√ß√µes
 # 1: X: 120 Y: 48
 
-MAP: 0
-CHEST: 0
+CHEST0: 0
 
 # ENEMY_0:
 ENEMY0_XY: 152,112
@@ -55,19 +59,18 @@ ENEMY0_OLDDIR: 0
 ENEMY0_LIVE: 1
 
 # Collectables:
-COLLECTABLE: 216,96
-COLLECT_POWER_INCREASE: 2
+EXISTING_COLLECTABLE0: 2
+COLLECTABLE0_POS: 216,96,120,48
+COLLECTABLE0_MATRIX: 54,15
+COLLECT_POWER_INCREASE0: 2,0
+COLLECTED0: 0
 
 # Chest: 
+CHEST0_POS: 120,176
 
-
-# posiÁ„o de cada inimigo da matriz em ordem crescente
+# posi√ß√£o de cada inimigo da matriz em ordem crescente
 MAP0_MATRIXPOS_PER_ENEMY: 61
-MAP0_ENEMY_COUNT: 1
-
-
-
-	
+MAP0_ENEMY_COUNT: 1	
 
 # ----------------
 # MAPA 2:
@@ -97,7 +100,7 @@ MAP2:
 	1,1,1,1,1,0,1,1,1,1,1,
 	1,7,0,0,1,0,1,0,0,7,1,
 	1,1,1,0,1,0,1,0,1,1,1,
-	0,0,0,0,0,0,0,0,0,0,0, 
+	0,0,0,0,0,0,0,0,0,0,0,
 	8,0,3,0,0,7,0,0,0,0,0
 # ----------------
 # MAPA 4:
@@ -113,7 +116,7 @@ MAP3:
 	0,0,1,1,1,0,1,1,1,0,0,
 	0,0,0,0,0,0,0,0,0,0,0,
 	0,1,1,1,1,1,1,1,1,1,1,
-	0,0,0,2,2,2,0,0,0,0,0,
+	0,0,0,2,2,2,0,0,0,0,0
 # ----------------
 # MAPA 5:
 # ----------------
@@ -128,6 +131,6 @@ MAP4:
 	1,1,1,1,1,0,0,0,0,0,0,
 	2,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,0,0,0,0,0,0,0,
-	1,0,3,0,0,0,0,0,0,3,8,
+	1,0,3,0,0,0,0,0,0,3,8
 
 
