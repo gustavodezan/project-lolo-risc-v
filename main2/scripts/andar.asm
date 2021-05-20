@@ -1,235 +1,266 @@
-# Print Image
-# %sprite passa o sprite que será movimentado
-# %grid_reg passa o registrador que contém a informação de onde a imagem deve aparecer na tela
-.eqv RIGHT 100
-.eqv UP 119
-.eqv LEFT 97
-.eqv DOWN 115
-.eqv FOUR 4
-.eqv ESC 27
-.eqv R 114
-.eqv SPACE 32
+# -----------------------------------------
+# 		   Macros
+# -----------------------------------------
+# macro trecho de código (~chamada de função)
 
-# Objetivo da macro de printar sprite:
-# Printar ao mesmo tempo em que cuida da animação
-# Os sprites serão no formato "strip"
-# Onde todos os sprites de movimento ficam em uma mesma imagem
-# %state é para saber se o "objeto" está andando ou parado
-# %dir é para saber a direção para a qual o sprite está indo (passar 
-# ---> Provável que eu tenha que modificar o script de clear
-.macro animate_sprite(%sprite,%grid_reg,%frame,%dir)
-	la t0,%sprite # carregar o endereço do sprite em t0 apenas para passar para t1 e t2
-	lw t1, 0(t0) # x -> primeira word - inicia em 0xFF000000 e termina em 0xFF00013F
-	lw t2, 4(t0) # y -> segunda word
-	mul t3,t2,t2 # y * y para obter a área -> t3 = área (16x16)
-	addi t0,t0,8
-	# Definir a posição inicial da imagem na tela
-	li s0, 0xFF000000
-	add s0,s0,%grid_reg
-	sub s8,t1,t2 # Encontrar valor de line_break para os pixels
-	# t1 passa o valor da dimensão x total da imagem, não de um único frame
-	mult_div(div,t6,t1,4)
-	mv t1,t6 # transformar t1 no valor de um frame e não do sprite inteiro -> totalFrames
-	# Achar o valor inicial de t0.
-	# -> primeiro teste -> t0 inicia na posição 0
-	# Carregar em t4 o valor da direção
-	# Após isso, multiplicar por t1, que será o intervalo de pixels de cada direção
-	# Ao somar o valor gerado em t4 chega-se no novo valor inicial da imagem.
-	la t4,%dir
-	lb t4,0(t4)
-	mul t4,t1,t4
-	add t0,t0,t4
-	
-	# ----------------------
-	# Animação do Sprite
-	# ----------------------
-	# Para animar o sprite preciso fazer ele passar por cada sprite dentro do conjunto
-	# de uma direção
-	# em t1 tenho o limite dos intervalos de frames
-	# registradores sobrando: t4,t5,t6
-	#%sprite,%r1,%r2,%frame,%ret,%temp1,%temp3
-	
-	image_cicle(%sprite,t1,t2,%frame,t4,t5,t6)
-	add t0,t0,t4
-	
-	# Encontrar o nº de pixels a serem pulados
-	li s9,320 # dimensão máxima da tela
-	sub t1,s9,t2 # t2 armazena da dimensão máxima - o valor x do sprite
-	mv s9,s8 # usar s9 como val de line_break
-	li t6,0 # contador quebra de linha
-	li t4, 0 # contador de parada
-IMPRIMEA:
-	bge t4, t3, BREAK_ANIMATION
-	bge t6,t2, NEW_LINEA
-	lw t5, 0(t0)
-	sw t5, 0(s0)
-	addi t0,t0,4
-	addi s0,s0,4
-	addi t4,t4,4
-	addi t6,t6,4
-	j IMPRIMEA
-NEW_LINEA:
-	add s0,s0,t1
-	add t0,t0,s9 # valor de line_break com retorno para o mesmo ponto inicial em X na linha seguinte
-	li t6,0 # retornar t6 para 0 para recomeçar a contagem
-	j IMPRIMEA
+# -----------------------------------------
+# 	Macros de operações:
+# -----------------------------------------
 
-BREAK_ANIMATION:
+# multiplicador e divisor
+# multiplica %reg por %imm e guarda em %result
+# ou faz a mesma operação para divisão
+.macro mult_div(%op,%result,%reg,%imm)
+	li %result,%imm
+	%op %result,%reg,%result
 .end_macro
 
-# Printa imagens estáticas na tela
-.macro print_img(%sprite,%grid_reg,%f_reg,%f_adress)
-	la t0,%sprite # carregar o endereço de tela em t0
-	lw t1, 0(t0) # x -> primeira word - inicia em 0xFF000000 e termina em 0xFF00013F
-	lw t2, 4(t0) # y -> segunda word
-	mul t3,t1,t2 # x * y para obter a área -> t3 = área
-	addi t0,t0,8 # 0 é x, 4 é y, portanto em 8 começa a imagem
-	li %f_reg, %f_adress
-	li s9,320 #dimensão máxima da tela
-	sub t2,s9,t1
-	add %f_reg,%f_reg,%grid_reg
-	li t6,0 # contador quebra de linha
-	li t4, 0 # contador de parada
-IMPRIME:
-	bge t4, t3, BREAK_PRINT
-	bge t6,t1, NEW_LINE 
-	lw t5, 0(t0)
-	sw t5, 0(%f_reg)
-	pp(t0,4)
-	pp(%f_reg,4)
-	pp(t4,4)
-	pp(t6,4)
-	j IMPRIME
-NEW_LINE: 
-	add %f_reg,%f_reg,t2
-	li t6,0 # retornar t6 para 0 para recomeçar a contagem
-	j IMPRIME
-BREAK_PRINT:
+# +=
+.macro pp(%reg,%int)
+	addi %reg,%reg,%int
 .end_macro
 
-# Player collision deve vir sempre que for chamada a função de movimentar o jogador
-# Desse modo, será checado se há colisão no próximo espaço que o Lolo irá ocupar
-# se houver, ele não movimenta, se estiver livre, ele movimenta normalmente
-.macro check_collision(%x,%y,%x_mv,%y_mv,%col_type)
-	# Checar se está em uma das bordas do mapa
-	# como todas as unidades estão sujeitas ao mapa, serve para todas
-	mv t5,%x_mv
-	mv t6,%y_mv
-	add %x_mv,%x,%x_mv
-	add %y_mv,%y,%y_mv
-	li t0,52 # pixel x onde começa o mapa, após a parede
-	li t1,28 # pixel y onde começa o mapa, após a parede
-	ble %x_mv,t0,END_CHECK_COLLISION # checar colisão na esquerda
-	ble %y_mv,t1,END_CHECK_COLLISION # checar colisão encima
-	li t0,220
-	li t1,196
-	bge %x_mv,t0,END_CHECK_COLLISION # checar colisão na direita
-	bge %y_mv,t1,END_CHECK_COLLISION #checar colisão inferior
-	
-	# Passo 2:
-	# checar se há algum objeto com colisão perto
-	li a7,1
-	la s8,CURRENT_MAP
-	li t4,0
-
-# SUPERIOR_ESQUERDO: X = 56 Y = 32
-# SUPERIOR_DIREITO: X = 44 Y = 32
-# INFERIOR_ESQUERDO: X = 56 Y =¨20
-# INFERIOS_DIREITO: X = 44 Y = 20
-	
-	get_point(%x_mv,%y_mv,56,32,t6)
-	check_col_type(t6,1,s8)
-	beq t1,t0,END_CHECK_COLLISION
-	li t1,2
-	beq t1,t0,CHECK_COLLISION_TYPE
-	li t1,7
-	beq t1,t0,CHECK_COLLISION_TYPE
-	li t1,8
-	beq t1,t0,END_CHECK_COLLISION
-	
-	get_point(%x_mv,%y_mv,44,32,t6)
-	check_col_type(t6,1,s8)
-	beq t1,t0,END_CHECK_COLLISION
-	li t1,2
-	beq t1,t0,CHECK_COLLISION_TYPE
-	li t1,7
-	beq t1,t0,CHECK_COLLISION_TYPE
-	li t1,8
-	beq t1,t0,END_CHECK_COLLISION
-	
-	get_point(%x_mv,%y_mv,56,20,t6)
-	check_col_type(t6,1,s8)
-	beq t1,t0,END_CHECK_COLLISION
-	li t1,2
-	beq t1,t0,CHECK_COLLISION_TYPE
-	li t1,7
-	beq t1,t0,CHECK_COLLISION_TYPE
-	li t1,8
-	beq t1,t0,END_CHECK_COLLISION
-	
-	get_point(%x_mv,%y_mv,44,20,t6)
-	check_col_type(t6,1,s8)
-	beq t1,t0,END_CHECK_COLLISION
-	li t1,2
-	beq t1,t0,CHECK_COLLISION_TYPE
-	li t1,7
-	beq t1,t0,CHECK_COLLISION_TYPE
-	li t1,8
-	beq t1,t0,END_CHECK_COLLISION
-
-ESCAPE_CHECK_COL:
-	increment_pos_reg(%x,%y,%x_mv,%y_mv)
-	li %col_type,0
-	j END_CHECK_COLLISION
-CHECK_COLLISION_TYPE:
-	li t0,7
-	bne t0,t1,END_CHECK_COLLISION
-	call HEARTS_ROUTINE
-
-END_CHECK_COLLISION:
-
+# ++
+.macro pp(%reg)
+	pp(%reg,1)
 .end_macro
 
-.macro clear_sprite(%old_sprite,%x,%y)
-CLEAR:
-	li s9,320
-	mul s10,%y,s9
-	add s10,s10,%x
-	li t1,16
-	mul t3,t1,t1 # x * y para obter a área -> t3 = área
-	la t0,%old_sprite # carregar em t0 o valor do sprite anterior, para acessar as cores dele
-	addi t0,t0,8
-	li s0, 0xFF000000
-	add s0,s0,s10
-	li s9,320 # dimensão máxima da tela
-	sub t2,s9,t1
-	# Como X e Y não estão em vetor, posso facilmente achar a posição relativa do background em 240x240
-	la s9,%old_sprite
-	lw s9,0(s9) # armazenar em s9 o valor y do mapa
-	mul s10,%y,s9
-	li s9,40
-	sub s9,%x,s9
-	add s10,s10,s9
-	add t0,t0,s10
-	la s9,%old_sprite
-	lw s9,0(s9) # armazenar em s9 o valor X do mapa
-	sub s9,s9,t1 # subtrair X do sprite de X do mapa
-	li t6,0 # contador quebra de linha
-	li t4, 0 # contador de parada
-CLEAR_LOOP:
-	bge t4, t3, END_CLEAR
-	bge t6,t1, CLEAR_LINE
-	lw t5,0(t0)
-	sw t5, 0(s0)
-	pp(t0,4)
-	pp(s0,4)
-	pp(t4,4)
-	pp(t6,4)
-	j CLEAR_LOOP
-CLEAR_LINE:
-	add s0,s0,t2
-	add t0,t0,s9 # valor de line_break com retorno para o mesmo ponto inicial em X na linha seguinte
-	li t6,0 # retornar t6 para 0 para recomeçar a contagem
-	j CLEAR_LOOP
-END_CLEAR:
+# Ecalls
+.macro Exit()
+	li a7,10 # Exit
+	ecall
+.end_macro
+
+# ---------------------------------------
+# 	"Funções" do Jogo
+# ---------------------------------------
+
+# -------------------
+# Funções de Posição
+# -------------------
+# Carrega o valor armazenado nas labels de posição nos registradores de movimento
+.macro load_pos(%label_x,%label_y, %x, %y)
+	la %x,%label_x
+	la %y,%label_y
+	lh %x,0(%x)
+	lh %y,0(%y)
+.end_macro
+
+# Carrega o valor dos registradores de movimento nas labels de posição
+.macro update_pos(%x,%y,%label_x,%label_y,%temp)
+	sh %x,%label_x,%temp
+	sh %y,%label_y,%temp
+.end_macro
+
+# passa o valor de um registrador para o registrador de movimento
+.macro increment_pos_reg(%x,%y,%r1,%r2)
+	mv %x,%r1
+	mv %y,%r2
+.end_macro
+
+# incrementa o valor da posição pelo valor de outros 2 registradores
+.macro increment_pos_numb(%x,%y,%r1,%r2)
+	add %x,%x,%r1
+	add %y,%y,%r2
+.end_macro
+
+# %r1 é o registrador do último movimento no eixo
+# %DIR é a label que guarda a informação da última direção
+.macro update_dir(%r1,%DIR,%temp)
+	sh %r1,%DIR,%temp
+.end_macro
+
+# ANIMAÇÂO:
+# r1 passa o número de pixels de todos os frames da imagem
+# r2 passa o número de pixels de cada frame da imagem
+# frame contém a label que guarda o último frame da imagem
+# em ret fica o resultado de quantos pixels devem ser pulados para o novo ponto de início da imagem
+.macro image_cicle(%sprite,%r1,%r2,%frame,%ret,%temp1,%temp3)
+	la %ret,%frame
+	lb %ret,0(%ret)
+	addi %temp1,%ret,1
+	mul %ret,%ret,%r2
+	sb %temp1,%frame,%temp3
+	# o valor dos frames deve ir de 0 até o valor de t1
+	bge %ret,%r1,SKIP_FRAME
+	j END_FRAME
+SKIP_FRAME:
+	sb zero,%frame,%temp1
+	li %ret,0
+END_FRAME:
+.end_macro
+
+# %x_mv e %y_mv são os registradores que guardam a posição do lolo movimentado
+# %imm_x e %imm_y são os imediatos que indicam o quanto os pixels do sprite devem ser deslocados
+# %treg é o registrador de retorno
+# OBS.: não passar t0 como argumento
+.macro get_point(%x_mv,%y_mv,%imm_x,%imm_y,%treg)
+	li t0,%imm_x
+	sub t5,%x_mv,t0
+	srli t5,t5,4
+	li t0,%imm_y
+	sub %treg,%y_mv,t0
+	srli %treg,%treg,4
+	li t0,11
+	mul %treg,%treg,t0
+	add %treg,%treg,t5
+END_CHECK_HITBOX:
+.end_macro
+
+# %imm é o valor para o qual será settado a posição da matriz
+# %jumper é o que será pulado na macro
+.macro change_matrix_value(%enemy_xy,%matrix,%imm,%jumper)
+	# encontrar enemey_matrix_pos a partir de x y
+	la t1,%enemy_xy
+	add t1,t1,%jumper
+	lw t2,4(t1)
+	lw t1,0(t1)
+	get_point(t1,t2,56,32,t6) # retorna o ponto do inimigo na matriz
+	slli t6,t6,2 # multiplica o ponto pelo número de intervalos da word
+	la t0,%matrix
+	add t0,t0,t6 # movimenta a matriz para o valor desejado
+	lb t1,0(t0)
+	li t2,%imm 
+	mv t1,t2 # troca o valor anterior pelo novo
+	sb t1,(t0)
+.end_macro
+
+# %sprite é o registrador que carrega a posição atual do sprite
+# %imm é o imediato do collision type do lolo
+# %matrix é a matriz do mapa
+# t0 é o registrador de retorno
+.macro check_col_type(%sprite,%imm,%matrix)
+	slli t0,%sprite,2
+	add t0,%matrix,t0
+	lb t0,(t0)
+	li t1,%imm
+.end_macro
+
+.macro get_col_pos(%pos,%matrix)
+	slli t0,%pos,2
+	add t0,%matrix,t0
+.end_macro
+
+# Os medidores de magnitude serão t0 e t1
+# t0 é a magnitude de X
+# t1 é a magnitude de Y
+# t4 é o atualizador de posição
+# t2 atualiza o state -> valor de true or false do input
+# Checar se é para a direita
+# Resetando os valores de t0 e t1 para 0
+
+# -----------------------------------------
+# Enemy Functions & Other Related Funcitons
+# -----------------------------------------
+
+# Enemy finder
+# checar o matrix enemy count para saber o número de vezes que o loop deve rodar
+# o loop roda recebendo várias labels de inimigos para encontrar o que atende à posição
+.macro enemy_finder(%enemypos,%enemycount,%colisionposx,%collisionposy)
+	la t4,%enemycount
+	lw t4,0(t4) # dfine em t4 o valor máximo do contador
+	find_dir(%label,%xdir,%ydir,%imm)
+	la t1,%collisionposx
+	lw t1,0(t1)
+	la t2,%collisionposy
+	lw t2,0(t2)
+	# com as posições da colisão, encontrar o relativo dela na matriz
+	li t3 0 # define o contador em 0
+LOOKING_FOR_ENEMY:
+	pp(t4)
+.end_macro
+
+# %r1 registrador de x
+# %r2 registrador de y
+.macro load_other_pos(%r1,%r2,%label)
+	la t1,%label
+	lh %r1,0(t1)
+	lh %r2,4(t1)
+.end_macro
+
+.macro load_other_pos(%r1,%r2,%labelx,%labely)
+	la t5,%labelx
+	la t6,%labely
+	lh %r1,0(t5)
+	lh %r2,0(t6)
+.end_macro
+
+.macro find_grid_pos(%r1,%r2)
+	li t0,320
+	mul %r2,%r2,t0
+	add %r2,%r2,%r1
+.end_macro
+
+# Lagarta
+# recebe x da lagarta e x do lolo
+# encontrar x da lagar + e - 16, para as posições 2 e 1, e 0 e 3 para x menores e maiores
+.macro lagarta_dir(%lolo,%x,%label,%old_label)
+	la t0,%label
+	lb t0,0(t0)
+	sb t0,%old_label,t1
+	li t0,16
+	bgt %lolo,%x,X_POS_CHECK
+	sub t2,%x,%lolo
+	ble t2,t0,HALF_DIR2
+	li t1,3
+	sb t1,%label,t2
+	j END_UPDATE_OTHER_DIR
+HALF_DIR2:
+	li t1,2
+	sb t1,%label,t2
+	j END_UPDATE_OTHER_DIR
+X_POS_CHECK:
+	sub t2,%lolo,%x
+	ble t2,t0,HALF_DIR1
+	li t1,0
+	sb t1,%label,t2
+	j END_UPDATE_OTHER_DIR
+HALF_DIR1:
+	li t1,1
+	sb t1,%label,t2
+
+END_UPDATE_OTHER_DIR:
+.end_macro
+
+# encontra a posição superior esquerda de uma posição na matrix no grid 
+# %r1 é o retorno de x
+# %r2 é o retorno de y
+
+# encontra a direção para a qual algum objeto estava se deslocando
+# adiciona um valor de movimento (%imm) nessa direção
+# %xdir e %ydir são os registradores que vão receber o valor do deslocamento de posição
+.macro find_dir(%label,%xdir,%ydir,%imm)
+	li %xdir 0
+	li %ydir 0
+	la t0,%label
+	lb t0,0(t0)
+	bnez t0,CHECK_IF_1
+	li %xdir,%imm
+	j DIR_FOUND
+CHECK_IF_1:
+	li t1,1
+	bne t1,t0,CHECK_IF_2
+	li %ydir,-%imm
+	j DIR_FOUND
+CHECK_IF_2:
+	li t1,2
+	bne t1,t0,IS_3
+	li %xdir,-%imm
+	j DIR_FOUND
+IS_3:
+	li %ydir,%imm
+	mv a0,%ydir
+DIR_FOUND:
+.end_macro
+
+# -------------------------
+# Music & Sound Effects
+# -------------------------
+.macro sound_effect(%a0,%a1,%a2,%a3)
+    li a0 %a0
+    li a1 %a1
+    li a2 %a2
+    li a3 %a3
+    li a7 31
+    ecall
 .end_macro
