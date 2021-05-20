@@ -319,7 +319,7 @@ UPGRADING_THE_MATRIX:
 MATRIX_UPGRADED:
 .end_macro
 
-.macro play_music(%NUM,%NOTAS,%a2,%a3) #ENDEREÇO WORD DA QUANTIDADE DE NOTAS, ENDEREÇO DAS NOTAS, INSTRUMENTO, VOLUME
+.macro play_music(%NUM,%NOTAS,%a2,%a3,%imm) #ENDEREÇO WORD DA QUANTIDADE DE NOTAS, ENDEREÇO DAS NOTAS, INSTRUMENTO, VOLUME
 	la s4 %NUM        		# define o endereÃ§o do nÃºmero de notas
 	lw s5 0(s4)        	# le o numero de notas
 	la s4 %NOTAS       	 # define o endereÃ§o das notas
@@ -335,7 +335,7 @@ LOOP_MUSIC:
     	ecall
     	#li a3 0            	# toca a nota
     	mv a0 a1        	# passa a duraÃ§Ã£o da nota para a pausa
-    	li a7 31
+    	li a7 %imm
     	#li a3 %a3        	# define a chamada de syscal 
     	ecall            	# realiza uma pausa de a0 ms
     	addi s4 s4 8        	# incrementa para o endereÃ§o da prÃ³xima nota
