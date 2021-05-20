@@ -1,6 +1,7 @@
 .include "./scripts/macros.asm"
 .include "./scripts/andar.asm"
 .include "./scripts/maps.asm"
+.include "./scripts/musics.asm"
 #.include "./scripts/jump_macros.asm"
 .eqv MMIO_add 0xff200004 # Data (ASCII value)
 .eqv MMIO_set 0xff200000 # Control (boolean)
