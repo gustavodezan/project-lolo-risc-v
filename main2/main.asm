@@ -14,13 +14,13 @@ LOLO_FRAME: .byte 0	# o lolo possui 5 frames para cada dir. Como definir isso ma
 POS_X:  .half 0               # x e y
 POS_Y:  .half 0
 MV_MAGNITUDE: .byte 0,0
-# O vetor DIR guarda a ˙ltima direÁ„o para a qual o sprite olhou
-# Vai de 0 atÈ 3, seguindo o sentido de um plano cartesiano
+# O vetor DIR guarda a √∫ltima dire√ß√£o para a qual o sprite olhou
+# Vai de 0 at√© 3, seguindo o sentido de um plano cartesiano
 DIR:    .byte 3
 FALSE: .byte 0
 HUD_LOLO: .half 3
 # POWER
-POWER_CHARGE: .byte 10
+POWER_CHARGE: .byte 0
 POWER_DIR: .byte 0
 POWER_POSX: .half 0
 POWER_POSY: .half 0
@@ -31,15 +31,14 @@ POWER_EXIST: .byte 0
 # -----------------------------------------------------------------------------
 li s0,0xFF100000
 
-
 LOAD_GAME_START:
-	# carrega em s1 e s0 as posiÁıes de inÌcio do lolo
+	# carrega em s1 e s0 as posi√ß√µes de in√≠cio do lolo
 	li s1,56
 	li s2,112
 	update_pos(s1,s2,POS_X,POS_Y,t2)	
 	li a6,40
 	# printa o menu no frame 1 enquanto printa o mapa no frame 0
-	print_img(Adventures_of_Lolo_Title,a6,s6,0xFF100000) # title È a correta para 320 x 240, Adventures_of_Lolo_Title È para 240 x 240
+	print_img(Adventures_of_Lolo_Title,a6,s6,0xFF100000) # title √© a correta para 320 x 240, Adventures_of_Lolo_Title √© para 240 x 240
 	li s0,0xFF200604
 	li t2,1
 	sw t2,0(s0)
@@ -53,13 +52,13 @@ WAIT_START:
 	
 LOAD_MAP_START:
 	# Elementos do Mapa 1
-	# CoraÁıes
+	# Cora√ß√µes
 	li a6 15480
 	print_img(collectable,a6,s0,0xFF000000)
 	li a6, 30936
 	print_img(collectable,a6,s0,0xFF000000)
 	li a6, 56440
-	animate_sprite(chests,a6,CHEST,CHEST)
+	animate_sprite(chests,a6,CHEST0,CHEST0)
 	# -------------------------------------
 	# Load HUD
 	li a6,248
@@ -88,26 +87,30 @@ GAME_LOOP:
 	li a0, MMIO_add # Data address MMIO
 	lw a0,(a0) # Recupera o valor de MMIO
 	# update dir
-	check_input(a0)
-	beqz t2,SKIP_MMIO_ADD
+	call CHECK_INPUT
+POS_INPUT_CHECK:
+	#beqz t2,SKIP_MMIO_ADD
 	call PLAYER_ROUTINE
 SKIP_MMIO_ADD:
+	#call NEXT_STAGE_ROUTINE
 	call MAP0_ROUTINE
 	li a5,208
 	li a6,16
 	clear_sprite(map_start,a5,a6)
 	# Update HUD
 	call PROPAGATE_POWER
+	call CHEST_ROUTINE
 POS_POWER:
 	
 	j GAME_LOOP
-	Exit()
+	#Exit()
 
 
 #move(a0,lolo_4_dir,lolo_walk,map_start,s1,s2,POS_X,POS_Y,LOLO_FRAME,DIR)
 PLAYER_ROUTINE:
 	# Gerar vetor X por Y
 	# -> o vetor da pos inicial deve ser gerado antes de chamar o clear pela primeira vez
+	beqz t2,PRINT_SCAPE
 	clear_sprite(map_start,s1,s2)
 	li a0 0
 COMPUT_MOVEMENT:
@@ -122,18 +125,17 @@ COMPUT_MOVEMENT:
 
 ANDAR_START:
 	# Incrementar X e Y com os valores de t2 e t3
-	li s9,0
-	check_collision(s1,s2,t2,t3,s9)
+	li s11,0
+	check_collision(s1,s2,t2,t3,s11)
 	li s9,320
 	update_pos(s1,s2,POS_X,POS_Y,t2)
 	mul s10,s2,s9
 	add s10,s10,s1
 	animate_sprite(lolo_walk,s10,LOLO_FRAME,DIR)
 	#print_img(%sprite,s10)
-	j BREAK_WALK
-# Print scape garante que caso haja input mas ele n„o gere movimento o lolo seja printado na posiÁ„o onde j· est·
-BREAK_WALK:
-	j SKIP_MMIO_ADD
+# Print scape garante que caso haja input mas ele n√£o gere movimento o lolo seja printado na posi√ß√£o onde j√° est√°
+
+	ret
 
 PRINT_SCAPE:
 	li t2,0
@@ -147,7 +149,7 @@ PRINT_SCAPE:
 MAP0_ROUTINE:
 ENEMY_ROUTINE:
 	# Rotina de printar cada inimigo:
-	# checar se o inimigos est· vivo:
+	# checar se o inimigos est√° vivo:
 	la t0,ENEMY0_LIVE
 	lb t0,0(t0)
 	li t1,1
@@ -167,115 +169,170 @@ SKIP_ENEMY_PRINT:
 	li a5,0
 	ret
 
-# Sempre que o Lolo colidir com um coraÁ„o ele iniciar· essa rotina
+# Sempre que o Lolo colidir com um cora√ß√£o ele iniciar√° essa rotina
 # passos:
 # acrescentar 2 de power quando convir
-# apagar o coraÁ„o	
+# apagar o cora√ß√£o
+# s1 armazena o vetor com a posi√ß√£o da matriz de cada cora√ß√£o
+# s2 aramzena o n√∫mero de itera√ß√µes
+CALL_CHEST_ROUTINE:
+	j CHEST_ROUTINE
+
 HEARTS_ROUTINE:
-	la t1,COLLECTABLE
-	lw s6,0(t1)
-	lw s7,4(t1)
+	# checar se existem cora√ß√µes no mapa
+	la t0,EXISTING_COLLECTABLE0
+	lb t0,0(t0)
+	la t1,COLLECTED0
+	lb t1,0(t1)
+	beq t1,t0,CALL_CHEST_ROUTINE
+	# criar um loop que itera por todos os cora√ß√µes, checando se a posi√ß√£o deles bate com a do lolo
+	# o loop deve ir de 0 at√© o valor de EXISTING_COLLECTABLE0
+	li t4,0 # contador
+	la s1,EXISTING_COLLECTABLE0
+	lw t3,0(s1)
+	la s1,COLLECTABLE0_MATRIX
+	li t1,0 # contador de quantas vezes o valor foi aumentado em 9
+LOOKING_FOR_HEARTS:
+	beq t4,t3,THERES_NO_HEARTS
+	lb t0,0(s1)
+	beq t0,t6,HEART_FOUND
+	addi t1,t1,8
+	addi t4,t4,1
+	addi s1,s1,4
+	j LOOKING_FOR_HEARTS
+
+HEART_FOUND:
+	# Encontrar cora√ß√£o de acordo com sua posi√ß√£o na matriz e executar a l√≥gica dele
+	la s1,COLLECTABLE0_POS
+	mv s2,t1
+	add s1,s1,s2
+	lw s6,0(s1)
+	lw s7,4(s1)
 	clear_sprite(map_start,s6,s7) # apagar o sprite
-	change_matrix_value(COLLECTABLE,CURRENT_MAP,0)
+	change_matrix_value(COLLECTABLE0_POS,CURRENT_MAP,0,s2)
 	
 	# Atualizar o valor de power
-	la t0,COLLECT_POWER_INCREASE
+	la t0,COLLECT_POWER_INCREASE0
+	srli s2,s2,2
+	add t0,t0,s2
 	lb t0,0(t0)
 	la t1,POWER_CHARGE
 	lb t2,0(t1)
 	add t2,t2,t0
 	sb t2,(t1)
-	ret
+	la t1,COLLECTED0
+	lb t1,0(t1)
+	addi t1,t1,1
+	sb t1,COLLECTED0,t2
+	la t1,COLLECTED0
+	lb t1,0(t1)
+	la s1,EXISTING_COLLECTABLE0
+	lb t0,0(s1)
+THERES_NO_HEARTS:
+	beq t1,t0,OPEN_CHEST
+	j GAME_LOOP
+
+OPEN_CHEST:
+	la t0,CHEST0
+	li t1,1
+	sb t1,(t0)
+	j GAME_LOOP
 
 # Rotina do Poder
 POWER_ROUTINE:
 	# checar se o lolo tem cargas de poder
 	la t0,POWER_CHARGE
-	lh t0,0(t0)
+	lb t0,0(t0)
 	blez t0,SKIP_CASTING
 	# permitir apenas um cast por vez
 	la t1,POWER_EXIST
 	lb t1,0(t1)
 	bnez t1,SKIP_CASTING
-	# diminuir em 1 o n˙mero de cargas
+	# diminuir em 1 o n√∫mero de cargas
 	li t1,1
 	sub t0,t0,t1
 	sh t0,POWER_CHARGE,t1
-	# encontrar a posiÁ„o e a direÁ„o de propagaÁ„o do poder
+	# encontrar a posi√ß√£o e a dire√ß√£o de propaga√ß√£o do poder
 	# a partir do Lolo
 	la t0,DIR
 	lb t0,0(t0)
-	sb t0,POWER_DIR,t1
+	sb t0,POWER_DIR,t6
+	
 CREATE_POWER:
 	sound_effect(69,400,127,60) # tocar efeito sonoro do poder
 	li t1 1
 	sb t1,POWER_EXIST,t2 # atualizar POWER_EXIST para true
-	load_other_pos(s5,s6,POS_X,POS_Y) # Carregar a posiÁ„o do lolo
-	update_pos(s5,s6,POWER_POSX,POWER_POSY,t3) # Passa para o poder a posiÁ„o do lolo
-	# checar por colisıes enquanto movimenta
+	load_other_pos(s5,s6,POS_X,POS_Y) # Carregar a posi√ß√£o do lolo
+	update_pos(s5,s6,POWER_POSX,POWER_POSY,t3) # Passa para o poder a posi√ß√£o do lolo
+	# checar por colis√µes enquanto movimenta
 PROPAGATE_POWER:
 	la t1,POWER_EXIST # checar se existe o poder a ser propagado
 	lb t1,0(t1)
 	beqz t1,SKIP_CASTING
-	
-	la t0,POWER_DIR # encontrar a direÁ„o do poder
-	lb t0,0(t0)
-	beqz t0,PROPAGATE_POWER_X
-	li t1,2
-	bne t0,t1,PROPAGATE_POWER_Y
-PROPAGATE_POWER_X:
 	load_pos(POWER_POSX,POWER_POSY,s5,s6)
-
-	la t0,POWER_DIR
-	lb t0,0(t0)
-	bnez t0,NEG_X_MV
-	li t2,4
-	j INCREASE_POWER_POSITIONX
-NEG_X_MV:
-	li t2,-4
-INCREASE_POWER_POSITIONX:
-	li t3,0
-	li s9,1
-	check_collision(s5,s6,t2,t3,s9)
-	bgtz s9,DESTROY_COLLIDED_OBJECT
+	find_dir(POWER_DIR,t2,t3,4)
+	li a6,1
+	check_collision(s5,s6,t2,t3,a6)
+	bgtz a6,DESTROY_COLLIDED_OBJECT
 	update_pos(s5,s6,POWER_POSX,POWER_POSY,t3)
+	#clear_sprite(map_start,s5,s6)
+	mv s7,s6
+	find_grid_pos(s5,s7)
+	animate_sprite(power,s7,FALSE,POWER_DIR)
 	clear_sprite(map_start,s5,s6)
-	find_grid_pos(s5,s6)
-	animate_sprite(power,s6,FALSE,POWER_DIR)
-	j SKIP_CASTING
-PROPAGATE_POWER_Y:
-	#increment_pos_reg(a5,a6,%r1,%r2)
-	#update_pos(a5,a6,POWER_POSX,POWER_POSY,t3)
-	#check_collision(a5,a6,a5,a6)
 SKIP_CASTING:
-	li t2 0
-	j POS_POWER
+	ret
 
 # Destruir objeto com o qual o poder colidiu:
 DESTROY_COLLIDED_OBJECT:
 	li t1,0
 	sb t1,POWER_EXIST,t2
-	# encontrar a direÁ„o de propagaÁ„o
+	# encontrar a dire√ß√£o de propaga√ß√£o
 	find_dir(POWER_DIR,s7,s11,16)
-
 START_DESTRUCTION:
 	load_pos(POWER_POSX,POWER_POSY,s5,s6)
 	increment_pos_numb(s5,s6,s7,s11)
+	
+	# tornar o clear_sprite relacionado ao inimigo
+	
 	clear_sprite(map_start,s5,s6)
+	li t0,56
+	sub t0,s5,t0
+	bltz t0,SKIP_OBJECT_DESTRUCTION
+	li t0,32
+	sub t0,s6,t0	
+	bltz t0,SKIP_OBJECT_DESTRUCTION	
 	la s8,CURRENT_MAP
 	get_point(s5,s6,52,32,t6)
 	check_col_type(t6,2,s8)
 	beq t0,t1,KILL_EVERYTHING
+
+
 SKIP_OBJECT_DESTRUCTION:
 	ret
 
 # Set the enemy state live to false
-# -> como encontrar o inimigo pela sua posiÁ„o?
+# -> como encontrar o inimigo pela sua posi√ß√£o?
 KILL_EVERYTHING:
 	li t1,0
 	sw t1,ENEMY0_LIVE,t0
-	change_matrix_value(ENEMY0_XY,CURRENT_MAP,0)
+	change_matrix_value(ENEMY0_XY,CURRENT_MAP,0,zero)
 	ret
+
+CHEST_ROUTINE:
+	li t0,0
+	la t1,CHEST0
+	lb t1,0(t1)
+	beq t1,t0 THERE_ARE_STILL_HEARTS_TO_FIND
+	#li t0,2
+	#beq t1,t0 CHEST_EMPTY
+	change_matrix_value(CHEST0_POS,CURRENT_MAP,0,zero)
+	li t0,0
+	la t1,STAGE_CLEAR
+	sb t0,0(t1)
+THERE_ARE_STILL_HEARTS_TO_FIND:
+	j GAME_LOOP
+
 
 GLOBAL_PAUSE:
 	li t1,0
@@ -287,20 +344,92 @@ GLOBAL_PAUSE:
 	li s3,ESC
 	bne a0,s3,GAME_LOOP
 	j GLOBAL_PAUSE
-# Pensamentos sobre a impress„o de imagens:
-# para printar uma imagem na tela com o script (em andar.asm) todos os registradores temp s„o usados,
-# por conta disso, talvez gere complicaÁıes realizar algo mais detalhado do que isso. (-> hora de receber input do teclado)
-# tambÈm armazenamos em um registrador salvo (s10) a ˙ltima posiÁ„o da imagem. Para poupar registradores
-# n„o tem mais registradores tempor·rios para essa funÁ„o durante a execuÁ„o do script... :)
+	
+CHECK_INPUT:
+	li t0,0
+	li t1,0
+	li t2,0
+	la t5,MV_MAGNITUDE
+CAST_POWER:
+	li s3,SPACE
+	bne a0,s3,W_RIGHT
+	call POWER_ROUTINE
+	li t0,0
+	li t1,0
+	li t2,0
+	la t5,MV_MAGNITUDE
+	j END_CHECK_INPUT
+W_RIGHT:
+	li s3,RIGHT
+	bne a0,s3,W_UP
+	li t0,1
+	li t4,0
+	sb t4,DIR,t3
+	li t2,1
+W_UP:
+	li s3,UP
+	bne a0,s3,W_LEFT
+	li t1,-1
+	li t4,1
+	sb t4,DIR,t3
+	li t2,1
+W_LEFT:
+	li s3,LEFT
+	bne a0,s3,W_DOWN
+	li t0,-1
+	li t4,2
+	sb t4,DIR,t3
+	li t2,1
+W_DOWN:
+	li s3,DOWN
+	bne a0,s3,END_CHECK_INPUT
+	li t1,1
+	li t4,3
+	sb t4,DIR,t3
+	li t2,1
+END_CHECK_INPUT:
+	sb t0,0(t5)
+	sb t1,4(t5)
+	j POS_INPUT_CHECK
+
+NEXT_STAGE_ROUTINE:
+	la t0,MAP
+	lb t0,0(t0)
+	
+	beqz t0,STAGE_1
+	li t1,1
+	beq t0,t1,STAGE_2
+	li t2,2
+	beq t0,t2,STAGE_3
+	li t3,3
+	beq t0,t3,STAGE_4
+	li t4,4
+	beq t0,t4,STAGE_5
+
+STAGE_1:
+
+STAGE_2:
+
+STAGE_3:
+
+STAGE_4:
+
+STAGE_5:
+
+# Pensamentos sobre a impress√£o de imagens:
+# para printar uma imagem na tela com o script (em andar.asm) todos os registradores temp s√£o usados,
+# por conta disso, talvez gere complica√ß√µes realizar algo mais detalhado do que isso. (-> hora de receber input do teclado)
+# tamb√©m armazenamos em um registrador salvo (s10) a √∫ltima posi√ß√£o da imagem. Para poupar registradores
+# n√£o tem mais registradores tempor√°rios para essa fun√ß√£o durante a execu√ß√£o do script... :)
 # Registradores salvos utilizados:
-# s0 -> È definido na hora de printar a imagem em seu valor base; depende de s10
+# s0 -> √© definido na hora de printar a imagem em seu valor base; depende de s10
 # s1 -> X
 # s2 -> Y
 # s3 -> check_input
-# s9 -> dimens„o m·xima da tela (È definido sempre que È necess·rio)
+# s9 -> dimens√£o m√°xima da tela (√© definido sempre que √© necess√°rio)
 # s10 -> vetor de x por y
 # s11 -> mapa atual
-# Com o uso de s1 e s2 para determinar o a posiÁ„o na tela sempre que algo for andar, fica mais f·cil de implementar
+# Com o uso de s1 e s2 para determinar o a posi√ß√£o na tela sempre que algo for andar, fica mais f√°cil de implementar
 # o desenho de partes menores do mapa.
 .data
 # -----------------------------------------
