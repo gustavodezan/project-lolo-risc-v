@@ -2,15 +2,15 @@
 # ------------------------------------
 # Valores dos elementos das matrizes
 # ------------------------------------
-# 0 - FREE: espaÁos em que o lolo pode andar livremente
-# 1 - WALL: colis„o com objetos sÛlidos
-# os valores de 2 atÈ 6 ser„o reservados para diferentes tipos de inimigos?
+# 0 - FREE: espa√ßos em que o lolo pode andar livremente
+# 1 - WALL: colis√£o com objetos s√≥lidos
+# os valores de 2 at√© 6 ser√£o reservados para diferentes tipos de inimigos?
 # 2 - LAGARTA
-# 6 - CHEST_OPEN: ba˙s colet·vel, se lolo passar por cima, ele libera a prÛxima fase
-# 7 - HEARTS: coraÁıes colet·veis. N„o possuem colis„o
-# 8 - CHESTS: ba˙s - possuem colis„o enquanto o Lolo n„o tiver coletado todos os coraÁıes
-# 9 - DOOR: saÌda da fase
-# os valores podem crescer para alem de n˙meros de 1 dÌgito
+# 6 - CHEST_OPEN: ba√∫s colet√°vel, se lolo passar por cima, ele libera a pr√≥xima fase
+# 7 - HEARTS: cora√ß√µes colet√°veis. N√£o possuem colis√£o
+# 8 - CHESTS: ba√∫s - possuem colis√£o enquanto o Lolo n√£o tiver coletado todos os cora√ß√µes
+# 9 - DOOR: sa√≠da da fase
+# os valores podem crescer para alem de n√∫meros de 1 d√≠gito
 
 STAGE_CLEAR: 0
 
@@ -46,30 +46,25 @@ MAP0:	1,1,1,1,1,1,0,1,1,0,1,
 	1,1,1,1,8,0,0,0,1,1,0,
 	1,1,1,1,1,1,0,0,0,0,0
 
-# PosiÁ„o dos coraÁıes
-# 1: X: 120 Y: 48
-
-CHEST0: 0
-
 # ENEMY_0:
-ENEMY0_XY: 152,112
-ENEMY0_DIR: 0
-ENEMY0_OLDDIR: 0
-ENEMY0_LIVE: 1
+ENEMY1_XY: 0,0
+ENEMY1_DIR: 0
+ENEMY1_OLDDIR: 0
+ENEMY1_LIVE: 0
 
 # Collectables:
-EXISTING_COLLECTABLE0: 2
-COLLECTABLE0_POS: 216,96,120,48
-COLLECTABLE0_MATRIX: 54,15
-COLLECT_POWER_INCREASE0: 2,0
-COLLECTED0: 0
+EXISTING_COLLECTABLE1: 2
+COLLECTABLE1_POS: 216,96,120,48
+COLLECTABLE1_MATRIX: 54,15
+COLLECT_POWER_INCREASE1: 2,0
+COLLECTED1: 0
 
 # Chest: 
-CHEST0_POS: 120,176
+CHEST1_POS: 120,176
 
-# posiÁ„o de cada inimigo da matriz em ordem crescente
-MAP0_MATRIXPOS_PER_ENEMY: 61
-MAP0_ENEMY_COUNT: 1	
+# posi√ß√£o de cada inimigo da matriz em ordem crescente
+MAP1_MATRIXPOS_PER_ENEMY: 0
+MAP1_ENEMY_COUNT: 0	
 
 # ----------------
 # MAPA 2:
@@ -86,6 +81,33 @@ MAP1:
 	1,1,1,1,0,0,0,1,1,1,0,
 	1,1,1,1,8,0,0,0,1,1,0,
 	1,1,1,1,1,1,0,0,0,0,0
+
+# Posi√ß√£o dos cora√ß√µes
+# 1: X: 120 Y: 48
+
+CHEST0: 0
+
+# ENEMY_0:
+ENEMY0_XY: 152,112
+ENEMY0_DIR: 0
+ENEMY0_OLDDIR: 0
+ENEMY0_LIVE: 1
+# posi√ß√£o de cada inimigo da matriz em ordem crescente
+MAP0_MATRIXPOS_PER_ENEMY: 61
+MAP0_ENEMY_COUNT: 1
+
+# Collectables:
+EXISTING_COLLECTABLE0: 2
+COLLECTABLE0_POS: 216,96,120,48
+COLLECTABLE0_MATRIX: 54,15
+COLLECT_POWER_INCREASE0: 2,0
+COLLECTED0: 0
+
+# Chest: 
+CHEST0_POS: 120,176
+
+		
+
 # ----------------
 # MAPA 3:
 # ----------------
